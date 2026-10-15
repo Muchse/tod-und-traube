@@ -190,11 +190,36 @@ function handleLogin() {
     if (!roleId) { showError(); return; }
     const rData = rolesBase.find(r => r.id === roleId);
     if (rData.isSide && !appState.activeSides[roleId]) { showError(); return; }
+    enterRole(roleId, false);
+}
+
+// Letzte Anmeldung merken: nach Neuladen oder Absturz geht es direkt zurueck ins Dossier
+const LOGIN_KEY = 'krimi_last_login';
+
+function enterRole(roleId, skipIntro) {
+    const rData = rolesBase.find(r => r.id === roleId);
     currentRole = { ...rData, ...roleContent[roleId] };
     document.getElementById('roleNameDisplay').textContent = currentRole.name;
     if (presenceRef) { const me = presenceRef.child(roleId); me.set(true); me.onDisconnect().remove(); }
-    appState.introEnabled ? nextStep(1) : nextStep(4);
+    try { localStorage.setItem(LOGIN_KEY, JSON.stringify({ roleId, code: appState.codes[roleId] })); } catch (e) {}
+    (skipIntro || !appState.introEnabled) ? nextStep(4) : nextStep(1);
     renderAnnouncement();
+}
+
+function restoreLogin() {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(LOGIN_KEY)); } catch (e) {}
+    if (!saved) return false;
+    const r = rolesBase.find(x => x.id === saved.roleId);
+    const valid = r && appState.codes[r.id] === saved.code && (!r.isSide || appState.activeSides[r.id]);
+    if (!valid) { try { localStorage.removeItem(LOGIN_KEY); } catch (e) {} return false; }
+    enterRole(r.id, true);
+    return true;
+}
+
+function logout() {
+    try { localStorage.removeItem(LOGIN_KEY); } catch (e) {}
+    location.reload();
 }
 
 function showError() { const e = document.getElementById('loginError'); e.style.opacity = '1'; setTimeout(() => e.style.opacity = '0', 2000); }
@@ -701,7 +726,10 @@ function renderAdminTools() {
 
 window.onload = () => {
     lucide.createIcons();
-    loadCase().then(autoLoginFromUrl).catch(err => {
+    loadCase().then(() => {
+        autoLoginFromUrl();                  // ?c=<Code> vom Zugangszettel hat Vorrang
+        if (!currentRole) restoreLogin();    // sonst die zuletzt angemeldete Rolle
+    }).catch(err => {
         console.error(err);
         const e = document.getElementById('loginError');
         e.textContent = 'Fall konnte nicht geladen werden';
