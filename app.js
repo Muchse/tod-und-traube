@@ -134,21 +134,26 @@ function renderAdminLive() {
 }
 
 function initAdmin() {
-    const list = document.getElementById('admin-role-list');
-    list.innerHTML = '';
-    rolesBase.forEach(r => {
-        const div = document.createElement('div');
-        div.className = 'p-3 bg-black/40 rounded-lg border border-zinc-800 space-y-2';
-        const isSideControl = r.isSide ? `<div id="toggle-${r.id}" class="admin-toggle ${appState.activeSides[r.id] ? 'active' : ''}" onclick="toggleAdminRole('${r.id}')"></div>` : '<span class="text-[8px] text-zinc-600 uppercase font-sans">Haupt</span>';
-        div.innerHTML = `
-            <div class="flex items-center justify-between">
-                <p class="font-bold text-white text-xs font-sans">${r.name}</p>
-                <div class="flex items-center space-x-2"><input type="text" maxlength="3" class="w-10 bg-black border border-zinc-700 p-1 text-white text-center text-xs rounded font-mono" id="code-${r.id}" value="${appState.codes[r.id]}">${isSideControl}</div>
-            </div>
-            <input type="text" maxlength="40" placeholder="Echter Name (nur für Dich)" class="w-full bg-black border border-zinc-700 p-1 px-2 text-white text-xs rounded font-sans" id="player-${r.id}" value="${esc(appState.players[r.id] || '')}">
-        `;
-        list.appendChild(div);
-    });
+    // Eine Tabelle: Eingaben (Name, Code, Aktiv) einmal aufbauen, Live-Zellen (st-/rd-/vt-) fuellt renderAdminPlayers()
+    const rows = rolesBase.map(r => {
+        const side = r.isSide
+            ? `<div id="toggle-${r.id}" class="admin-toggle ${appState.activeSides[r.id] ? 'active' : ''}" onclick="toggleAdminRole('${r.id}')"></div>`
+            : '<span class="text-[8px] text-zinc-600 uppercase">Haupt</span>';
+        return `<tr id="row-${r.id}" class="border-t border-zinc-800">
+            <td class="py-2 pr-3 text-white font-bold whitespace-nowrap">${esc(r.name)}</td>
+            <td class="py-2 pr-3"><input type="text" maxlength="40" placeholder="Echter Name" class="w-full min-w-[110px] bg-black border border-zinc-700 p-1 px-2 text-white text-xs rounded font-sans" id="player-${r.id}" value="${esc(appState.players[r.id] || '')}"></td>
+            <td class="py-2 pr-3"><input type="text" maxlength="3" class="w-12 bg-black border border-zinc-700 p-1 text-white text-center text-xs rounded font-mono" id="code-${r.id}" value="${esc(appState.codes[r.id])}"></td>
+            <td class="py-2 pr-3">${side}</td>
+            <td class="py-2 pr-3 whitespace-nowrap" id="st-${r.id}"></td>
+            <td class="py-2 pr-3 font-mono tracking-widest whitespace-nowrap" id="rd-${r.id}"></td>
+            <td class="py-2 text-zinc-300" id="vt-${r.id}"></td></tr>`;
+    }).join('');
+    document.getElementById('admin-roster').innerHTML = `<div class="overflow-x-auto"><table class="w-full min-w-[680px] text-xs font-sans">
+        <thead><tr class="text-[9px] uppercase tracking-widest text-zinc-500 text-left">
+            <th class="pb-2 pr-3">Rolle</th><th class="pb-2 pr-3">Echter Name</th><th class="pb-2 pr-3">Code</th><th class="pb-2 pr-3">Aktiv</th>
+            <th class="pb-2 pr-3">Status</th><th class="pb-2 pr-3">Runden geöffnet</th><th class="pb-2">Anklage</th></tr></thead>
+        <tbody>${rows}</tbody></table></div>
+        <p class="mt-3 text-[10px] text-zinc-500 font-sans leading-relaxed">Echter Name, Code und Aktiv werden mit Speichern übernommen. <span id="admin-roster-note"></span></p>`;
     for(let i=1; i<=4; i++) { document.getElementById(`pw-${i}`).value = appState.passwords[i]; }
     appState.introEnabled ? document.getElementById('toggle-intro').classList.add('active') : document.getElementById('toggle-intro').classList.remove('active');
     renderAdminLive();
@@ -160,7 +165,7 @@ function initAdmin() {
     watchAdminData();
 }
 
-function toggleAdminRole(id) { appState.activeSides[id] = !appState.activeSides[id]; document.getElementById(`toggle-${id}`).classList.toggle('active'); }
+function toggleAdminRole(id) { appState.activeSides[id] = !appState.activeSides[id]; document.getElementById(`toggle-${id}`).classList.toggle('active'); renderAdminPlayers(); }
 function toggleIntroSetting() { appState.introEnabled = !appState.introEnabled; document.getElementById('toggle-intro').classList.toggle('active'); }
 
 function saveAdminChanges() {
@@ -533,23 +538,26 @@ function watchAdminData() {
     progressRef.on('value', snap => { progress = snap.val() || {}; renderAdminPlayers(); });
 }
 
+// Fuellt nur die Live-Zellen der Tabelle, damit ungespeicherte Eingaben (Name, Code) erhalten bleiben
 function renderAdminPlayers() {
-    const box = document.getElementById('admin-players');
-    if (!box) return;
-    if (!liveSync()) { box.innerHTML = `<p class="${ADMIN_NOTE}">Live-Sync ist aus.</p>`; return; }
-    const rows = activePlayers().map(r => {
-        const online = !!presence[r.id];
+    const live = liveSync();
+    const note = document.getElementById('admin-roster-note');
+    if (note) note.textContent = live ? '' : 'Live-Sync ist aus: Status, Runden und Anklage sind nicht verfügbar.';
+    const dash = '<span class="text-zinc-700">–</span>';
+    rolesBase.forEach(r => {
+        const row = document.getElementById(`row-${r.id}`);
+        if (!row) return;
+        const active = !r.isSide || appState.activeSides[r.id];
+        row.classList.toggle('opacity-40', !active);
+        const show = live && active;
         const opened = (progress[r.id] && progress[r.id].rounds) || {};
-        const rounds = [1, 2, 3, 4].map(n => `<span class="${opened[n] ? 'text-white' : 'text-zinc-700'}">${n}</span>`).join(' ');
         const v = votes[r.id];
-        return `<tr class="border-t border-zinc-800">
-            <td class="py-2 pr-3 text-white">${esc(r.name)}${playerOf(r.id) ? ` <span class="text-zinc-500">(${esc(playerOf(r.id))})</span>` : ''}</td>
-            <td class="py-2 pr-3">${online ? '<span class="text-green-500">● online</span>' : '<span class="text-zinc-600">○ offline</span>'}</td>
-            <td class="py-2 pr-3 font-mono tracking-widest">${rounds}</td>
-            <td class="py-2 text-zinc-300">${v ? '→ ' + esc(labelOf(v)) : '–'}</td></tr>`;
-    }).join('');
-    box.innerHTML = `<table class="w-full text-xs font-sans"><thead><tr class="text-[9px] uppercase tracking-widest text-zinc-500 text-left">
-        <th class="pb-2">Spieler</th><th class="pb-2">Status</th><th class="pb-2">Runden geöffnet</th><th class="pb-2">Anklage</th></tr></thead><tbody>${rows}</tbody></table>`;
+        document.getElementById(`st-${r.id}`).innerHTML = !show ? dash
+            : presence[r.id] ? '<span class="text-green-500">● online</span>' : '<span class="text-zinc-600">○ offline</span>';
+        document.getElementById(`rd-${r.id}`).innerHTML = !show ? dash
+            : [1, 2, 3, 4].map(n => `<span class="${opened[n] ? 'text-white' : 'text-zinc-700'}">${n}</span>`).join(' ');
+        document.getElementById(`vt-${r.id}`).innerHTML = !show || !v ? dash : '→ ' + esc(labelOf(v));
+    });
 }
 
 // Rollenvorschau (ohne Anmeldung, ohne Schreibzugriffe)
