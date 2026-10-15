@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Krimi-Event: Tod & Traube</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="min-h-screen flex flex-col items-center">
+
+    <!-- LOGIN -->
+    <div id="step-login" class="min-h-screen flex items-center justify-center p-4 w-full no-print text-center relative overflow-hidden">
+        <div class="scanner-line"></div>
+        <div class="max-w-md w-full bg-zinc-900 border border-zinc-800 p-8 rounded-lg shadow-2xl relative z-10">
+            <h1 class="text-red-800 text-2xl md:text-3xl font-bold mb-8 uppercase tracking-[0.3em] typewriter-font">Zentralarchiv</h1>
+            <div class="space-y-8">
+                <input type="text" id="accessCode" maxlength="3" 
+                       class="w-full bg-black border-2 border-zinc-800 p-4 text-center text-4xl tracking-[0.4em] text-white focus:border-red-900 outline-none transition-all uppercase font-mono"
+                       placeholder="---">
+                <button onclick="handleLogin()" class="w-full bg-red-900 hover:bg-red-800 text-white py-4 rounded font-bold transition-all flex items-center justify-center space-x-3">
+                    <i data-lucide="shield-alert" class="w-5 h-5"></i>
+                    <span class="tracking-widest uppercase text-sm">Akte Entsperren</span>
+                </button>
+                <p id="loginError" class="text-red-600 text-[10px] text-center opacity-0 uppercase tracking-widest font-bold font-sans">Zugriff verweigert</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div id="step-admin" class="step-hidden min-h-screen w-full max-w-7xl p-6 flex flex-col items-center no-print text-center pb-32">
+        <h2 class="text-red-800 text-2xl font-bold mb-8 uppercase tracking-[0.3em] typewriter-font">Spielleiter-Zentrale</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
+                <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Rollen & Codes</h3>
+                <div id="admin-role-list" class="space-y-3"></div>
+            </div>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
+                <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Passwörter</h3>
+                <div class="space-y-4">
+                    <div><label class="text-[9px] uppercase text-zinc-500 block mb-1">Runde 1</label><input type="text" id="pw-1" class="w-full bg-black border border-zinc-700 p-2 text-white font-mono text-sm rounded"></div>
+                    <div><label class="text-[9px] uppercase text-zinc-500 block mb-1">Runde 2</label><input type="text" id="pw-2" class="w-full bg-black border border-zinc-700 p-2 text-white font-mono text-sm rounded"></div>
+                    <div><label class="text-[9px] uppercase text-zinc-500 block mb-1">Runde 3</label><input type="text" id="pw-3" class="w-full bg-black border border-zinc-700 p-2 text-white font-mono text-sm rounded"></div>
+                    <div><label class="text-[9px] uppercase text-zinc-500 block mb-1">Runde 4</label><input type="text" id="pw-4" class="w-full bg-black border border-zinc-700 p-2 text-white font-mono text-sm rounded"></div>
+                </div>
+            </div>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
+                <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Optionen</h3>
+                <div class="flex items-center justify-between p-4 bg-black/40 rounded-lg border border-zinc-800">
+                    <div><p class="font-bold text-white text-xs font-sans">Intro anzeigen</p></div>
+                    <div id="toggle-intro" class="admin-toggle" onclick="toggleIntroSetting()"></div>
+                </div>
+            </div>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
+                <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Live-Runden</h3>
+                <div id="admin-live"></div>
+            </div>
+        </div>
+        <div class="mt-12 flex space-x-4">
+            <button onclick="saveAdminChanges()" class="bg-red-950 text-white px-8 py-3 rounded font-bold text-[10px] uppercase tracking-widest border border-red-800">Speichern</button>
+            <button onclick="location.reload()" class="bg-zinc-800 text-zinc-400 px-8 py-3 rounded font-bold text-[10px] uppercase tracking-widest">Abmelden</button>
+        </div>
+    </div>
+
+    <!-- PLAYER STEPS -->
+    <div id="step-identity" class="step-hidden min-h-screen flex flex-col items-center justify-center p-6 text-center w-full no-print">
+        <p class="text-zinc-500 uppercase tracking-[0.5em] mb-4 text-xs italic">Identität bestätigt</p>
+        <h2 id="roleNameDisplay" class="text-4xl md:text-7xl font-bold uppercase mb-12 tracking-tighter text-white">NAME</h2>
+        <button onclick="nextStep(2)" class="text-red-700 uppercase tracking-[0.3em] font-bold text-sm border-b-2 border-red-900 pb-1">Weiter</button>
+    </div>
+
+    <div id="step-prologue" class="step-hidden min-h-screen flex flex-col items-center justify-center p-6 max-w-4xl mx-auto text-center w-full no-print">
+        <div id="prologueContainer" class="space-y-8 italic text-xl md:text-2xl leading-relaxed text-zinc-300"></div>
+        <button id="toStatusBtn" onclick="nextStep(3)" class="mt-16 text-red-900 uppercase tracking-widest font-bold text-lg border-b-2 border-red-900 opacity-0 transition-opacity duration-1000">Status abrufen</button>
+    </div>
+
+    <div id="step-status" class="step-hidden min-h-screen flex flex-col items-center justify-center p-6 text-center w-full no-print">
+        <div id="statusStamp" class="stamp-effect mb-16">STATUS</div>
+        <div class="max-w-xl bg-zinc-900 border border-zinc-800 p-8 rounded shadow-2xl mx-auto text-center">
+            <h3 class="text-red-800 text-[10px] font-bold uppercase tracking-widest mb-4 underline font-sans">Anweisung</h3>
+            <p id="displayRoleRule" class="text-xl md:text-2xl font-bold text-white leading-tight">REGEL</p>
+        </div>
+        <button onclick="nextStep(4)" class="mt-12 text-zinc-500 hover:text-white uppercase tracking-widest font-bold transition-colors text-xs font-sans">Dossier öffnen</button>
+    </div>
+
+    <!-- FINAL DOSSIER -->
+    <div id="step-dossier" class="step-hidden w-full flex flex-col items-center py-8 px-4 text-left">
+        <div class="folder-bg max-w-4xl w-full p-2 md:p-6 rounded-xl relative mb-12">
+            <div class="absolute -top-5 left-6 bg-[#c2a37d] px-6 py-1 rounded-t-lg font-bold text-[10px] uppercase tracking-widest text-black/40 border-t border-x border-black/10 font-sans">FALL #842-X</div>
+            
+            <div class="dossier-paper w-full p-6 md:p-12 shadow-lg relative overflow-hidden text-left">
+                <div class="flex justify-between items-start border-b-2 border-zinc-400 pb-6 mb-8">
+                    <div>
+                        <h2 id="dossName" class="text-3xl md:text-5xl font-bold uppercase tracking-tighter mb-1">NAME</h2>
+                        <p class="text-[9px] font-bold text-zinc-500 uppercase tracking-[0.2em] font-sans">Fallakte • Radebeul</p>
+                    </div>
+                    <div id="dossStatusLabel" class="p-2 border-4 font-black text-lg uppercase transform -rotate-12">STATUS</div>
+                </div>
+
+                <div class="space-y-10 text-lg leading-relaxed text-zinc-800">
+                    <section>
+                        <h4 class="flex items-center text-[9px] font-bold uppercase text-zinc-400 tracking-widest mb-3 font-sans"><i data-lucide="user" class="w-3 h-3 mr-2"></i> Hintergrund & Historie</h4>
+                        <div id="dossBackground" class="scroll-section bg-white/40 p-6 rounded border border-zinc-200 shadow-inner italic whitespace-pre-wrap text-sm md:text-base leading-relaxed">HINTERGRUND</div>
+                    </section>
+
+                    <section class="bg-zinc-200/60 p-6 border-l-[10px] border-red-900 shadow-md">
+                        <h4 class="flex items-center text-[9px] font-bold uppercase text-red-900 tracking-widest mb-3 font-sans"><i data-lucide="zap" class="w-3 h-3 mr-2"></i> Deine Mission</h4>
+                        <p id="dossGoal" class="font-bold text-lg md:text-2xl text-black leading-tight uppercase tracking-tight">GOAL</p>
+                    </section>
+
+                    <section class="pt-4 no-print">
+                        <h4 class="flex items-center text-[9px] font-bold uppercase text-zinc-400 tracking-widest mb-6 font-sans"><i data-lucide="clock" class="w-3 h-3 mr-2"></i> Runden-Hinweise</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div id="hint-1" onclick="unlockHint(1)" class="hint-locked p-6 rounded flex flex-col items-center justify-center text-center"><i data-lucide="lock" class="w-6 h-6 mb-2 opacity-30"></i><span class="text-[10px] uppercase font-bold tracking-widest">Runde 1</span></div>
+                            <div id="hint-2" onclick="unlockHint(2)" class="hint-locked p-6 rounded flex flex-col items-center justify-center text-center"><i data-lucide="lock" class="w-6 h-6 mb-2 opacity-30"></i><span class="text-[10px] uppercase font-bold tracking-widest">Runde 2</span></div>
+                            <div id="hint-3" onclick="unlockHint(3)" class="hint-locked p-6 rounded flex flex-col items-center justify-center text-center"><i data-lucide="lock" class="w-6 h-6 mb-2 opacity-30"></i><span class="text-[10px] uppercase font-bold tracking-widest">Runde 3</span></div>
+                            <div id="hint-4" onclick="unlockHint(4)" class="hint-locked p-6 rounded flex flex-col items-center justify-center text-center"><i data-lucide="lock" class="w-6 h-6 mb-2 opacity-30"></i><span class="text-[10px] uppercase font-bold tracking-widest">Runde 4</span></div>
+                        </div>
+                    </section>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <section>
+                            <h4 class="flex items-center text-[9px] font-bold uppercase text-zinc-400 tracking-widest mb-3 font-sans"><i data-lucide="search" class="w-3 h-3 mr-2"></i> Zu Deiner Person</h4>
+                            <div id="dossDetails" class="text-sm italic whitespace-pre-wrap leading-relaxed"></div>
+                        </section>
+                        <section class="bg-red-900/5 p-6 rounded border border-red-900/10 relative overflow-hidden">
+                            <h4 class="flex items-center text-[9px] font-bold uppercase text-red-800 tracking-widest mb-3 font-sans"><i data-lucide="fingerprint" class="w-3 h-3 mr-2"></i> Das Geheimnis</h4>
+                            <p id="dossSecret" class="text-red-950 font-bold leading-snug text-lg italic">GEHEIMNIS</p>
+                        </section>
+                    </div>
+                </div>
+                <div class="mt-16 pt-6 border-t border-zinc-300 text-center opacity-30 text-[8px] uppercase tracking-widest font-sans">ARCHIV RADEBEUL</div>
+            </div>
+        </div>
+
+        <div class="mt-8 mb-20 flex flex-col items-center space-y-6 no-print">
+            <button onclick="window.print()" class="bg-white text-black font-bold py-4 px-12 rounded-full shadow-2xl flex items-center space-x-3 uppercase tracking-widest text-xs font-sans"><i data-lucide="printer" class="w-4 h-4"></i><span>Drucken</span></button>
+            <button onclick="location.reload()" class="text-zinc-500 text-[9px] hover:text-white uppercase tracking-widest transition-colors font-sans">Abmelden</button>
+        </div>
+    </div>
+
+    <!-- PASSWORD MODAL -->
+    <div id="passwordModal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 step-hidden no-print">
+        <div class="bg-zinc-900 border border-zinc-800 p-8 rounded-xl w-full max-w-sm">
+            <h3 class="text-red-800 uppercase tracking-widest font-bold mb-4 text-xs typewriter-font">Passwort</h3>
+            <input type="text" id="hintPasswordInput" class="w-full bg-black border-b-2 border-zinc-700 p-3 text-white outline-none focus:border-red-900 mb-8 text-center text-xl font-mono">
+            <div class="flex space-x-4">
+                <button onclick="closeModal()" class="flex-1 py-2 text-zinc-500 text-[10px] uppercase font-bold font-sans">Abbruch</button>
+                <button onclick="confirmUnlock()" class="flex-1 py-3 bg-red-950 text-white text-[10px] uppercase font-bold rounded font-sans">OK</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

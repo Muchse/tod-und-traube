@@ -1,0 +1,8 @@
+{
+  "rules": {
+    "game": {
+      ".read": true,
+      ".write": true
+    }
+  }
+}
