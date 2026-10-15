@@ -236,7 +236,7 @@ function openHint(round, mode) {
     hintMode[round] = mode;
     const h = document.getElementById(`hint-${round}`);
     h.onclick = null;
-    const parts = currentRole.hints[round].split('\n').map(line => line.trim()).filter(line => line !== '');
+    const parts = resolveOptional(currentRole.hints[round]).split('\n').map(line => line.trim()).filter(line => line !== '');
     h.className = "col-span-2 border border-zinc-300 rounded-xl overflow-hidden bg-white shadow-inner";
     h.innerHTML = createSliderHTML(parts, round);
     lucide.createIcons();
@@ -302,6 +302,12 @@ const MARK_VIEW = {
     suspect: ['!', 'text-red-800', 'verdächtig'],
     cleared: ['✓', 'text-green-800', 'entlastet']
 };
+
+// Textstellen, die nur mit der optionalen Rolle Fassbinder gelten: {{G:mit|ohne}} oder {{G:nur mit}}
+function resolveOptional(text) {
+    const on = !!appState.activeSides.fassbinder;
+    return text.replace(/\{\{G:(.*?)(?:\|(.*?))?\}\}/gs, (_, withG, withoutG) => on ? withG : (withoutG || ''));
+}
 
 function suspectsFor(roleId) {
     return rolesBase.filter(r => r.status !== 'ERMITTLER' && r.id !== roleId && (!r.isSide || appState.activeSides[r.id]));
@@ -392,7 +398,7 @@ function renderReveal() {
         : mine === sol.culpritId ? 'Du hattest recht.' : 'Diesmal lagst Du falsch.';
     const story = document.getElementById('revealStory');
     story.innerHTML = '';
-    sol.text.split('\n').forEach(t => { const p = document.createElement('p'); p.textContent = t; story.appendChild(p); });
+    resolveOptional(sol.text).split('\n').forEach(t => { const p = document.createElement('p'); p.textContent = t; story.appendChild(p); });
     const counts = {};
     Object.values(votes).forEach(id => { counts[id] = (counts[id] || 0) + 1; });
     const rows = Object.entries(counts).sort((a, b) => b[1] - a[1])
