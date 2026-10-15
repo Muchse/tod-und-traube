@@ -40,6 +40,10 @@
                 <div id="admin-roster"></div>
             </div>
             <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
+                <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Live-Runden</h3>
+                <div id="admin-live"></div>
+            </div>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
                 <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Passwörter</h3>
                 <div class="space-y-4">
                     <div><label class="text-[9px] uppercase text-zinc-500 block mb-1">Runde 1</label><input type="text" id="pw-1" class="w-full bg-black border border-zinc-700 p-2 text-white font-mono text-sm rounded"></div>
@@ -47,21 +51,6 @@
                     <div><label class="text-[9px] uppercase text-zinc-500 block mb-1">Runde 3</label><input type="text" id="pw-3" class="w-full bg-black border border-zinc-700 p-2 text-white font-mono text-sm rounded"></div>
                     <div><label class="text-[9px] uppercase text-zinc-500 block mb-1">Runde 4</label><input type="text" id="pw-4" class="w-full bg-black border border-zinc-700 p-2 text-white font-mono text-sm rounded"></div>
                 </div>
-            </div>
-            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
-                <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Optionen</h3>
-                <div class="flex items-center justify-between p-4 bg-black/40 rounded-lg border border-zinc-800">
-                    <div><p class="font-bold text-white text-xs font-sans">Intro anzeigen</p></div>
-                    <div id="toggle-intro" class="admin-toggle" onclick="toggleIntroSetting()"></div>
-                </div>
-            </div>
-            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
-                <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Live-Runden</h3>
-                <div id="admin-live"></div>
-            </div>
-            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
-                <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Finale</h3>
-                <div id="admin-finale"></div>
             </div>
             <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
                 <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Durchsage</h3>
@@ -72,7 +61,15 @@
                 <div id="admin-preview" class="space-y-2"></div>
             </div>
             <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
+                <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Finale</h3>
+                <div id="admin-finale"></div>
+            </div>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
                 <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Werkzeuge</h3>
+                <div class="flex items-center justify-between p-4 bg-black/40 rounded-lg border border-zinc-800 mb-2">
+                    <div><p class="font-bold text-white text-xs font-sans">Intro anzeigen</p></div>
+                    <div id="toggle-intro" class="admin-toggle" onclick="toggleIntroSetting()"></div>
+                </div>
                 <div id="admin-tools" class="space-y-2"></div>
             </div>
         </div>
