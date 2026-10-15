@@ -125,3 +125,21 @@ body {
     .dossier-paper { transform: none !important; box-shadow: none !important; border: 1px solid #333 !important; }
     .scroll-section { max-height: none !important; overflow: visible !important; }
 }
+
+/* Vorschau-Modus: Platz fuer die Leiste oben */
+body.previewing { padding-top: 40px; }
+
+/* Zugangszettel: nur beim Drucken sichtbar */
+#slipsSheet { display: none; }
+.slips-grid { display: grid; grid-template-columns: 1fr 1fr; }
+.slip { border: 1px dashed #555; padding: 16px; text-align: center; break-inside: avoid; font-family: 'Inter', sans-serif; color: #000; }
+.slip-title { font-family: 'Special Elite', cursive; letter-spacing: 0.2em; font-size: 11px; text-transform: uppercase; color: #991b1b; }
+.slip-name { font-size: 16px; font-weight: 700; margin: 6px 0; }
+.slip-code { font-family: monospace; font-size: 34px; letter-spacing: 0.3em; font-weight: 700; margin: 4px 0 8px; }
+.slip-qr svg { width: 110px; height: 110px; }
+.slip-url { font-size: 9px; color: #444; word-break: break-all; margin-top: 6px; }
+@media print {
+    body.printing-slips { background: #fff !important; }
+    body.printing-slips > *:not(#slipsSheet) { display: none !important; }
+    body.printing-slips #slipsSheet { display: block !important; width: 100%; }
+}

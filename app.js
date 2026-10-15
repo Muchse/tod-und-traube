@@ -15,6 +15,7 @@ async function loadCase() {
     rolesBase = data.roles;
     roleContent = data.content;
     caseSolution = data.solution || null;
+    caseGm = data.gmNotes || null;
     const defaults = {
         codes: rolesBase.reduce((acc, r) => ({ ...acc, [r.id]: r.defaultCode }), {}),
         activeSides: rolesBase.filter(r => r.isSide).reduce((acc, r) => ({ ...acc, [r.id]: true }), {}),
@@ -30,6 +31,13 @@ async function loadCase() {
         });
         finaleRef.on('value', snap => { finale = snap.val() || {}; onFinaleChange(); });
         votesRef.on('value', snap => { votes = snap.val() || {}; onFinaleChange(); });
+        announceRef.on('value', snap => { announcement = snap.val(); renderAnnouncement(); });
+        epochRef.on('value', snap => {
+            const e = snap.val();
+            if (e === epoch) return;
+            epoch = e;
+            if (currentRole && dossierVisible()) renderNotebook();
+        });
     } else {
         let saved = null;
         try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (e) {}
@@ -45,6 +53,15 @@ let unlockedRef = null;
 let presenceRef = null;
 let finaleRef = null;
 let votesRef = null;
+let announceRef = null;
+let progressRef = null;
+let epochRef = null;
+let announcement = null;
+let epoch = null;
+let presence = {};
+let progress = {};
+let previewMode = false;
+let caseGm = null;
 let finale = {};          // { open, reveal }
 let votes = {};           // roleId -> verdaechtigte roleId
 let caseSolution = null;
@@ -68,10 +85,13 @@ async function connectLiveSync() {
         presenceRef = game.child('presence');
         finaleRef = game.child('finale');
         votesRef = game.child('votes');
+        announceRef = game.child('announcement');
+        progressRef = game.child('progress');
+        epochRef = game.child('epoch');
         return snap.val() || {};
     } catch (err) {
         console.error('Live-Sync nicht verfuegbar, lokaler Modus:', err);
-        settingsRef = unlockedRef = presenceRef = finaleRef = votesRef = null;
+        settingsRef = unlockedRef = presenceRef = finaleRef = votesRef = announceRef = progressRef = epochRef = null;
         return null;
     }
 }
@@ -108,19 +128,7 @@ function renderAdminLive() {
             <div class="admin-toggle ${isUnlocked(r) ? 'active' : ''}" onclick="setRoundUnlocked(${r}, ${!isUnlocked(r)})"></div>
         </div>`).join('');
     box.innerHTML = `<div class="space-y-3">${rows}</div>
-        <button onclick="lockAllRounds()" class="mt-4 w-full bg-zinc-800 text-zinc-400 py-2 rounded font-bold text-[10px] uppercase tracking-widest font-sans">Alle sperren</button>
-        <p id="admin-presence" class="mt-4 text-[10px] text-zinc-500 font-sans leading-relaxed"></p>`;
-}
-
-let presenceWatched = false;
-function watchPresence() {
-    if (!presenceRef || presenceWatched) return;
-    presenceWatched = true;
-    presenceRef.on('value', snap => {
-        const online = Object.keys(snap.val() || {}).map(id => (rolesBase.find(r => r.id === id) || { name: id }).name);
-        const el = document.getElementById('admin-presence');
-        if (el) el.textContent = online.length ? `Online (${online.length}): ${online.join(', ')}` : 'Niemand online.';
-    });
+        <button onclick="lockAllRounds()" class="mt-4 w-full bg-zinc-800 text-zinc-400 py-2 rounded font-bold text-[10px] uppercase tracking-widest font-sans">Alle sperren</button>`;
 }
 
 function initAdmin() {
@@ -140,7 +148,11 @@ function initAdmin() {
     appState.introEnabled ? document.getElementById('toggle-intro').classList.add('active') : document.getElementById('toggle-intro').classList.remove('active');
     renderAdminLive();
     renderAdminFinale();
-    watchPresence();
+    renderAdminPlayers();
+    renderAdminAnnounce();
+    renderAdminPreview();
+    renderAdminTools();
+    watchAdminData();
 }
 
 function toggleAdminRole(id) { appState.activeSides[id] = !appState.activeSides[id]; document.getElementById(`toggle-${id}`).classList.toggle('active'); }
@@ -170,6 +182,7 @@ function handleLogin() {
     document.getElementById('roleNameDisplay').textContent = currentRole.name;
     if (presenceRef) { const me = presenceRef.child(roleId); me.set(true); me.onDisconnect().remove(); }
     appState.introEnabled ? nextStep(1) : nextStep(4);
+    renderAnnouncement();
 }
 
 function showError() { const e = document.getElementById('loginError'); e.style.opacity = '1'; setTimeout(() => e.style.opacity = '0', 2000); }
@@ -227,13 +240,15 @@ function lockHint(i) {
 // zurueckgesetzte Runden werden wieder gesperrt (per Passwort geoeffnete bleiben offen).
 function refreshHints() {
     for (let r = 1; r <= 4; r++) {
-        if (isUnlocked(r) && !hintMode[r]) openHint(r, 'live');
+        if (previewMode) { if (!hintMode[r]) openHint(r, 'preview'); }
+        else if (isUnlocked(r) && !hintMode[r]) openHint(r, 'live');
         else if (!isUnlocked(r) && hintMode[r] === 'live') { delete hintMode[r]; lockHint(r); }
     }
 }
 
 function openHint(round, mode) {
     hintMode[round] = mode;
+    if (progressRef && currentRole && !previewMode) progressRef.child(currentRole.id).child('rounds').child(String(round)).set(true);
     const h = document.getElementById(`hint-${round}`);
     h.onclick = null;
     const parts = resolveOptional(currentRole.hints[round]).split('\n').map(line => line.trim()).filter(line => line !== '');
@@ -318,9 +333,9 @@ function activePlayers() {
 }
 
 function loadNotes() {
-    try { return JSON.parse(localStorage.getItem(NOTES_PREFIX + currentRole.id)) || { marks: {}, text: '' }; } catch (e) { return { marks: {}, text: '' }; }
+    try { return JSON.parse(localStorage.getItem(notesKey())) || { marks: {}, text: '' }; } catch (e) { return { marks: {}, text: '' }; }
 }
-function saveNotes(n) { try { localStorage.setItem(NOTES_PREFIX + currentRole.id, JSON.stringify(n)); } catch (e) {} }
+function saveNotes(n) { try { localStorage.setItem(notesKey(), JSON.stringify(n)); } catch (e) {} }
 
 function renderNotebook() {
     const notes = loadNotes();
@@ -350,13 +365,14 @@ function nameOf(id) { const r = rolesBase.find(x => x.id === id); return r ? r.n
 
 function onFinaleChange() {
     renderAdminFinale();
+    renderAdminPlayers();
     renderVoting();
     renderReveal();
 }
 
 function renderVoting() {
     const sec = document.getElementById('voting');
-    const open = liveSync() && currentRole && finale.open && !finale.reveal && dossierVisible();
+    const open = liveSync() && currentRole && finale.open && !finale.reveal && dossierVisible() && !previewMode;
     sec.classList.toggle('step-hidden', !open);
     if (!open) return;
     const body = document.getElementById('votingBody');
@@ -377,7 +393,7 @@ function renderVoting() {
 
 function submitVote() {
     const picked = document.querySelector('input[name="vote"]:checked');
-    if (!picked || !votesRef) return;
+    if (!picked || !votesRef || previewMode) return;
     if (!confirm(`Anklage gegen ${nameOf(picked.value)} erheben? Das lässt sich nicht mehr ändern.`)) return;
     votesRef.child(currentRole.id).set(picked.value);
 }
@@ -385,7 +401,7 @@ function submitVote() {
 function renderReveal() {
     const ov = document.getElementById('revealOverlay');
     if (!finale.reveal) revealDismissed = false;
-    if (!(liveSync() && currentRole && finale.reveal && !revealDismissed && caseSolution)) {
+    if (!(liveSync() && currentRole && finale.reveal && !revealDismissed && caseSolution && !previewMode)) {
         ov.classList.add('step-hidden');
         return;
     }
@@ -449,9 +465,225 @@ function renderAdminFinale() {
         <button onclick="resetFinale()" class="mt-4 w-full bg-zinc-800 text-zinc-400 py-2 rounded font-bold text-[10px] uppercase tracking-widest font-sans">Finale zurücksetzen</button>`;
 }
 
+// --- Admin-Werkzeuge: Durchsage, Spielerübersicht, Vorschau, Zettel, Spickzettel, Export, Neues Spiel ---
+function notesKey() { return NOTES_PREFIX + (epoch || 0) + '_' + currentRole.id; }
+
+function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+const ADMIN_BTN = 'w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 py-3 rounded font-bold text-[10px] uppercase tracking-widest font-sans transition-colors';
+const ADMIN_NOTE = 'text-[10px] text-zinc-500 font-sans leading-relaxed';
+
+// Durchsage
+function dismissedAnnouncementId() { try { return localStorage.getItem('krimi_ann_dismissed'); } catch (e) { return null; } }
+
+function renderAnnouncement() {
+    const bar = document.getElementById('announceBanner');
+    const show = currentRole && !previewMode && announcement && announcement.text && String(announcement.id) !== dismissedAnnouncementId();
+    if (!show) { bar.classList.add('step-hidden'); return; }
+    const wasHidden = bar.classList.contains('step-hidden');
+    document.getElementById('announceText').textContent = announcement.text;
+    bar.classList.remove('step-hidden');
+    if (wasHidden && navigator.vibrate && navigator.userActivation && navigator.userActivation.hasBeenActive) navigator.vibrate(200);
+}
+
+function dismissAnnouncement() {
+    try { localStorage.setItem('krimi_ann_dismissed', String(announcement.id)); } catch (e) {}
+    renderAnnouncement();
+}
+
+function sendAnnouncement() {
+    const input = document.getElementById('announceInput');
+    const text = input.value.trim();
+    if (!text || !announceRef) return;
+    announceRef.set({ text, id: Date.now() });
+    input.value = '';
+}
+
+function clearAnnouncement() { if (announceRef) announceRef.remove(); }
+
+function renderAdminAnnounce() {
+    const box = document.getElementById('admin-announce');
+    if (!box) return;
+    if (!liveSync()) { box.innerHTML = `<p class="${ADMIN_NOTE}">Live-Sync ist aus.</p>`; return; }
+    box.innerHTML = `<textarea id="announceInput" rows="3" maxlength="200" placeholder="z. B. Pause bis 20:15 Uhr" class="w-full bg-black border border-zinc-700 p-2 text-white text-sm rounded font-sans outline-none focus:border-red-900"></textarea>
+        <div class="flex gap-2 mt-3">
+            <button onclick="sendAnnouncement()" class="flex-1 bg-red-950 text-white py-2 rounded font-bold text-[10px] uppercase tracking-widest border border-red-800 font-sans">Senden</button>
+            <button onclick="clearAnnouncement()" class="flex-1 bg-zinc-800 text-zinc-400 py-2 rounded font-bold text-[10px] uppercase tracking-widest font-sans">Löschen</button>
+        </div>`;
+}
+
+// Spielerübersicht (Online-Status, geöffnete Runden, Anklage)
+let adminWatched = false;
+function watchAdminData() {
+    if (!presenceRef || adminWatched) return;
+    adminWatched = true;
+    presenceRef.on('value', snap => { presence = snap.val() || {}; renderAdminPlayers(); });
+    progressRef.on('value', snap => { progress = snap.val() || {}; renderAdminPlayers(); });
+}
+
+function renderAdminPlayers() {
+    const box = document.getElementById('admin-players');
+    if (!box) return;
+    if (!liveSync()) { box.innerHTML = `<p class="${ADMIN_NOTE}">Live-Sync ist aus.</p>`; return; }
+    const rows = activePlayers().map(r => {
+        const online = !!presence[r.id];
+        const opened = (progress[r.id] && progress[r.id].rounds) || {};
+        const rounds = [1, 2, 3, 4].map(n => `<span class="${opened[n] ? 'text-white' : 'text-zinc-700'}">${n}</span>`).join(' ');
+        const v = votes[r.id];
+        return `<tr class="border-t border-zinc-800">
+            <td class="py-2 pr-3 text-white">${esc(r.name)}</td>
+            <td class="py-2 pr-3">${online ? '<span class="text-green-500">● online</span>' : '<span class="text-zinc-600">○ offline</span>'}</td>
+            <td class="py-2 pr-3 font-mono tracking-widest">${rounds}</td>
+            <td class="py-2 text-zinc-300">${v ? '→ ' + esc(nameOf(v)) : '–'}</td></tr>`;
+    }).join('');
+    box.innerHTML = `<table class="w-full text-xs font-sans"><thead><tr class="text-[9px] uppercase tracking-widest text-zinc-500 text-left">
+        <th class="pb-2">Spieler</th><th class="pb-2">Status</th><th class="pb-2">Runden geöffnet</th><th class="pb-2">Anklage</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
+
+// Rollenvorschau (ohne Anmeldung, ohne Schreibzugriffe)
+function renderAdminPreview() {
+    const box = document.getElementById('admin-preview');
+    if (!box) return;
+    box.innerHTML = activePlayers().map(r =>
+        `<button onclick="previewRole('${r.id}')" class="${ADMIN_BTN} text-left normal-case tracking-normal">${esc(r.name)}</button>`).join('');
+}
+
+function previewRole(id) {
+    const rData = rolesBase.find(r => r.id === id);
+    previewMode = true;
+    currentRole = { ...rData, ...roleContent[id] };
+    document.getElementById('previewBarName').textContent = rData.name;
+    document.getElementById('previewBar').classList.remove('step-hidden');
+    document.body.classList.add('previewing');
+    nextStep(4);
+    renderAnnouncement();
+    renderReveal();
+}
+
+function exitPreview() {
+    previewMode = false;
+    currentRole = null;
+    Object.keys(hintMode).forEach(k => delete hintMode[k]);
+    document.getElementById('previewBar').classList.add('step-hidden');
+    document.body.classList.remove('previewing');
+    showAdmin();
+}
+
+// Zugangszettel (QR-Link meldet direkt mit dem Code an)
+function baseUrl() { return location.origin + location.pathname.replace(/[^/]*$/, ''); }
+
+function buildSlips() {
+    const base = baseUrl();
+    return `<div class="slips-grid">${activePlayers().map(r => {
+        const code = appState.codes[r.id];
+        const qr = qrcode(0, 'M');
+        qr.addData(`${base}?c=${code}`);
+        qr.make();
+        return `<div class="slip"><div class="slip-title">Tod &amp; Traube</div><div class="slip-name">${esc(r.name)}</div>
+            <div class="slip-code">${esc(code)}</div><div class="slip-qr">${qr.createSvgTag(4, 0)}</div><div class="slip-url">${esc(base)}</div></div>`;
+    }).join('')}</div>`;
+}
+
+function printSlips() {
+    document.getElementById('slipsSheet').innerHTML = buildSlips();
+    document.body.classList.add('printing-slips');
+    window.print();
+}
+window.addEventListener('afterprint', () => document.body.classList.remove('printing-slips'));
+
+function autoLoginFromUrl() {
+    const code = new URLSearchParams(location.search).get('c');
+    if (!code || code === '123') return;
+    history.replaceState(null, '', location.pathname);
+    document.getElementById('accessCode').value = code;
+    handleLogin();
+}
+
+// Spielleiter-Spickzettel
+function openGmSheet() {
+    if (!caseGm || !caseSolution) return;
+    const section = (title, body) => `<section><h3 class="text-[10px] font-bold uppercase tracking-widest text-red-800 mb-3">${title}</h3>${body}</section>`;
+    const list = items => `<ul class="list-disc pl-5 space-y-2">${items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>`;
+    const timeline = caseGm.timeline.map(([t, x]) =>
+        `<div class="flex gap-4 py-1 border-t border-zinc-800"><span class="w-28 shrink-0 font-mono text-zinc-500">${esc(t)}</span><span>${esc(x)}</span></div>`).join('');
+    const herrings = caseGm.redHerrings.map(([w, x]) => `<p><b class="text-white">${esc(w)}:</b> ${esc(x)}</p>`).join('');
+    const story = resolveOptional(caseSolution.text).split('\n').map(t => `<p>${esc(t)}</p>`).join('');
+    document.getElementById('gmSheetBody').innerHTML =
+        section('Täter', `<p class="text-lg text-white font-bold">${esc(nameOf(caseGm.culpritId))}</p>`) +
+        section('Tathergang', `<div class="space-y-3">${story}</div>`) +
+        section('Zeitlinie', timeline) +
+        section('Schlüsselhinweise gegen den Täter', list(caseGm.keyClues)) +
+        section('Falsche Fährten', `<div class="space-y-3">${herrings}</div>`) +
+        section('Tipps zur Spielleitung', list(caseGm.tips));
+    document.getElementById('gmSheet').classList.remove('step-hidden');
+}
+function closeGmSheet() { document.getElementById('gmSheet').classList.add('step-hidden'); }
+
+// Ergebnis exportieren (Textdatei)
+function exportResult() {
+    const players = activePlayers();
+    const culprit = caseSolution ? caseSolution.culpritId : null;
+    const lines = [
+        'Tod & Traube - Ergebnis',
+        'Datum: ' + new Date().toLocaleString('de-DE'),
+        '',
+        'Täter: ' + (culprit ? nameOf(culprit) : 'unbekannt'),
+        `Spieler (${players.length}): ` + players.map(r => r.name).join(', '),
+        'Gisela Fassbinder dabei: ' + (appState.activeSides.fassbinder ? 'ja' : 'nein'),
+        'Freigeschaltete Runden: ' + ([1, 2, 3, 4].filter(isUnlocked).join(', ') || 'keine'),
+        '',
+        'Anklagen:'
+    ];
+    let right = 0;
+    const counts = {};
+    players.forEach(r => {
+        const v = votes[r.id];
+        if (v) { counts[v] = (counts[v] || 0) + 1; if (v === culprit) right++; }
+        lines.push(`  ${r.name} -> ${v ? nameOf(v) + (v === culprit ? ' (richtig)' : ' (falsch)') : 'keine Anklage'}`);
+    });
+    const cast = Object.keys(votes).filter(id => players.some(p => p.id === id)).length;
+    lines.push('', `Richtig getippt: ${right} von ${cast} abgegebenen Anklagen`, '', 'Stimmen je Person:');
+    Object.entries(counts).sort((a, b) => b[1] - a[1]).forEach(([id, n]) => lines.push(`  ${nameOf(id)}: ${n}`));
+    if (!cast) lines.push('  (keine Stimmen)');
+    const blob = new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `tod-und-traube-ergebnis-${new Date().toISOString().slice(0, 10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+// Neues Spiel: Runden, Finale, Anklagen, Durchsage, Fortschritt zuruecksetzen
+function newGame() {
+    if (!liveSync()) return;
+    if (!confirm('NEUES SPIEL starten?\nRunden werden gesperrt, Anklagen, Finale, Durchsage und Spielfortschritt gelöscht.')) return;
+    lockAllRounds();
+    finaleRef.set({ open: false, reveal: false });
+    votesRef.remove();
+    progressRef.remove();
+    announceRef.remove();
+    epochRef.set(Date.now());
+}
+
+function renderAdminTools() {
+    const box = document.getElementById('admin-tools');
+    if (!box) return;
+    const live = liveSync();
+    box.innerHTML = `<button onclick="printSlips()" class="${ADMIN_BTN}">Zugangszettel drucken</button>
+        <button onclick="openGmSheet()" class="${ADMIN_BTN}">Spickzettel</button>
+        <button onclick="exportResult()" class="${ADMIN_BTN}">Ergebnis exportieren</button>
+        <button onclick="newGame()" ${live ? '' : 'disabled'} class="w-full bg-red-950 ${live ? 'hover:bg-red-900' : 'opacity-40'} text-white py-3 rounded font-bold text-[10px] uppercase tracking-widest border border-red-800 font-sans">Neues Spiel</button>
+        ${live ? '' : `<p class="${ADMIN_NOTE}">Neues Spiel braucht Live-Sync.</p>`}
+        <p class="${ADMIN_NOTE}">Zettel zeigen die gespeicherten Codes. Nach Änderungen erst speichern.</p>`;
+}
+
 window.onload = () => {
     lucide.createIcons();
-    loadCase().catch(err => {
+    loadCase().then(autoLoginFromUrl).catch(err => {
         console.error(err);
         const e = document.getElementById('loginError');
         e.textContent = 'Fall konnte nicht geladen werden';

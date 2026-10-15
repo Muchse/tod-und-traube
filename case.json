@@ -217,5 +217,133 @@
     "culpritId": "poehler",
     "stampLabel": "TÄTERIN",
     "text": "Sophia Pöhler leitet den Tourismusverband Elbland. Gunter von Bernstein hatte den lukrativen Exklusiv-Vertrag mit ihrem Verband gekündigt – für Sophia ein riesiger Verlust.\nAus Wut wollte sie die Weinprobe am Samstag sabotieren. Am Nachmittag klemmte sie unbemerkt etwas in den Fensterriegel des Gutsausschanks. Am Abend stieg sie in Wanderschuhen (Größe 38) und mit dünnen Lederhandschuhen durchs Fenster und stellte ein Fläschchen mit bitterem Essig-Traubenstiel-Gemisch auf den Tisch.\nAls Gunter sie überraschte, floh sie über den Weinwanderweg. Er verfolgte sie, und an den Infotafeln schlug sie ihn mit einem Holzhammer aus der Ausstellung nieder – im Affekt, und ein zweites Mal, weil er sie erkannt hatte.\nVerraten haben sie die Schuhgröße 38, die Lederhandschuhe (keine Fingerabdrücke, keine Holzsplitter), ihr brüchiges Alibi{{G: (Gisela sah sie um 17:30 Uhr aus Gunters Büro stürmen)}} und die Kamera, mit der sie sich nachträglich ein Alibi verschaffen wollte."
+  },
+  "gmNotes": {
+    "culpritId": "poehler",
+    "timeline": [
+      [
+        "ab 08:30",
+        "Maria, Bernd und Isabella im Büro, Jakob ab ca. 09:00."
+      ],
+      [
+        "10:00",
+        "Zwei Leute der Werbeagentur bei Jakob und Maria (Winzer-Pension)."
+      ],
+      [
+        "11:30–12:30",
+        "Philipp Jäger holt Unterlagen bei Jakob und Maria ab (Gunter ist nicht da)."
+      ],
+      [
+        "kurz vor 12:00",
+        "Gunter schnappt sich Isabellas Füller und notiert etwas auf einem Briefumschlag."
+      ],
+      [
+        "12:30–13:30",
+        "Mittagessen im Gutsausschank: Jakob und Maria, ab 13:00 Isabella und Bernd (mit Gisela)."
+      ],
+      [
+        "14:30",
+        "Gunter und Jakob besprechen das Geschäftsessen."
+      ],
+      [
+        "15:00–15:30",
+        "Kaffeepause Maria und Isabella, danach Weinprobe-Termin Maria und Sophia."
+      ],
+      [
+        "Nachmittag",
+        "Sophia blockiert unbemerkt den Fensterriegel im Gutsausschank."
+      ],
+      [
+        "ca. 16:30",
+        "Deckel der Kompostkiste hinter dem Kelterhaus steht offen (Quelle der Traubenstiele)."
+      ],
+      [
+        "17:30",
+        "Sophia stürmt aufgelöst aus Gunters Büro, in Sneakern statt Wanderschuhen."
+      ],
+      [
+        "18:30",
+        "Gunter und Jakob fahren zum Geschäftsessen nach Meißen (Sächsischer Hof)."
+      ],
+      [
+        "18:30–20:00",
+        "Isabella isst mit Ines im Goldenen Anker. Jäger isst mit Diana, ab 21:00 Bar in Dresden."
+      ],
+      [
+        "22:00",
+        "Gunter und Jakob verlassen das Restaurant, gegen 22:30 zurück auf dem Weingut."
+      ],
+      [
+        "ca. 22:30",
+        "Sophia schleicht über den Weinwanderweg zum Gutsausschank und stellt das Essigfläschchen auf den Tisch."
+      ],
+      [
+        "22:36",
+        "Fehlermeldung des Bewässerungssensors (Kabel abgerissen, Sophia ist beim Verstecken darüber gestolpert)."
+      ],
+      [
+        "22:50–23:00",
+        "Tatzeit: Gunter wird an den Infotafeln erschlagen. Bernd kommt gegen 22:50 am Gutsausschank an, hört den Schrei und findet Gunter."
+      ],
+      [
+        "23:01",
+        "Isabella fotografiert zuhause einen Käse (Zeitstempel als Alibi)."
+      ],
+      [
+        "23:10",
+        "Jäger kommt per Taxi nach Hause (Alibi bestätigt)."
+      ],
+      [
+        "danach",
+        "Polizei holt die Beteiligten ab, Treffen im Gutsausschank."
+      ]
+    ],
+    "keyClues": [
+      "Schuhgröße 38: zweite Wanderschuh-Spur am Weinwanderweg (Pöschel, Runde 3). Aber auch Maria trägt 38, und die Leihschuhe gibt es dutzendfach.",
+      "Dünne Lederhandschuhe (Bernd Runde 3, Sophias Details): keine Fingerabdrücke und keine Holzsplitter vom verwitterten Hammergriff.",
+      "Fenster nicht aufgebrochen, Glasbruchsensoren still: tagsüber präpariert (Bernd Runde 2, Gisela Runde 3).",
+      "Brüchiges Alibi: Sophia will ab 18 Uhr zuhause gewesen sein, wurde aber um 17:30 Uhr aus Gunters Büro stürmen gesehen (Gisela Runde 1).",
+      "Sneaker statt Wanderschuhe (Gisela Runde 1, Maria Runde 3): Schuhwechsel am Auto.",
+      "Kamera und Nachtaufnahmen als nachträgliches Alibi; sie sah die Blaulichter und kehrte um.",
+      "Motiv: Gunter hat den Exklusiv-Vertrag mit dem Tourismusverband gekündigt (Pöschel Runde 4).",
+      "Bernd ist entlastet: Das Kabel war vom Weg aus sichtbar abgerissen, die Fehlermeldungen waren echt (Pöschel Runde 4)."
+    ],
+    "redHerrings": [
+      [
+        "Maria",
+        "Ebenfalls Größe 38, ihr Brillenputztuch (Monogramm MVB) liegt am Weg (Gunter hatte es im Auto eingesteckt), heimliches Jobangebot und Trennungsplan."
+      ],
+      [
+        "Jakob",
+        "Pflaster am Finger (Käsemesser), heimlich vorbereitete Unterlagen zur Geschäftsunfähigkeit des Vaters, er profitiert vom Tod."
+      ],
+      [
+        "Isabella",
+        "Füller mit Gravur unter der Leiche (Gunter hatte ihn mittags mitgenommen), Streit um Gemälde und Stiftung, lauschte an Gunters Tür."
+      ],
+      [
+        "Philipp Jäger",
+        "Streit um das Gemälde und verschwiegenes Motiv; sein Alibi steht aber (Diana, Taxifahrer bis 23:10 Uhr). Das Gemälde hat er heimlich aus Gunters Büro geholt."
+      ],
+      [
+        "Bernd Fiedler",
+        "Vorstrafe (Finanzamt-Hack), Fundort der Leiche, Fußspuren; die Server-Protokolle bestätigen aber die Fehlermeldungen."
+      ],
+      [
+        "Gisela Fassbinder (optional)",
+        "Streit um den abgelehnten Urlaub, Gerücht um Global Wine, heimliche Bewerbung bei einem anderen Weingut."
+      ],
+      [
+        "Gunter selbst",
+        "Marias Theorie: Er habe die Weinprobe selbst sabotieren wollen, um ihr einen Fehler vorzuhalten (Essigfläschchen)."
+      ]
+    ],
+    "tips": [
+      "Runden nach Gesprächsverlauf freigeben: Runde 1 Alibis, Runde 2 Beobachtungen, Runde 3 Spuren, Runde 4 Hintergründe.",
+      "Sophia darf lügen, alle anderen nicht. Widersprüche in ihren Aussagen (Alibi, Schuhe) sind der Hebel.",
+      "Kommissar Pöschel leitet die Befragung, seine Berichte liefern die Spurenlage.",
+      "Vor dem Finale die Abstimmung öffnen. In der Spielerübersicht siehst du, wer schon angeklagt hat und wen.",
+      "Ohne Gisela entfallen zwei Hinweise (Sophias 17:30-Uhr-Alibi, klemmendes Fenster samt Kompost-Spur). Der Fall bleibt lösbar."
+    ]
   }
 }

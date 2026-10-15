@@ -60,6 +60,22 @@
                 <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Finale</h3>
                 <div id="admin-finale"></div>
             </div>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left md:col-span-2">
+                <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Spielerübersicht</h3>
+                <div id="admin-players"></div>
+            </div>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
+                <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Durchsage</h3>
+                <div id="admin-announce"></div>
+            </div>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
+                <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Rollenvorschau</h3>
+                <div id="admin-preview" class="space-y-2"></div>
+            </div>
+            <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-left">
+                <h3 class="text-zinc-400 text-[10px] font-bold uppercase tracking-widest mb-4 border-b border-zinc-800 pb-2 font-sans">Werkzeuge</h3>
+                <div id="admin-tools" class="space-y-2"></div>
+            </div>
         </div>
         <div class="mt-12 flex space-x-4">
             <button onclick="saveAdminChanges()" class="bg-red-950 text-white px-8 py-3 rounded font-bold text-[10px] uppercase tracking-widest border border-red-800">Speichern</button>
@@ -170,6 +186,34 @@
         </div>
     </aside>
 
+    <!-- DURCHSAGE, VORSCHAU-LEISTE, SPICKZETTEL, ZUGANGSZETTEL (alle nicht div, damit nextStep sie nicht ausblendet) -->
+    <aside id="announceBanner" class="fixed top-0 inset-x-0 z-[70] bg-red-900 text-white p-4 shadow-2xl step-hidden no-print font-sans">
+        <div class="max-w-xl mx-auto flex items-start gap-4">
+            <div class="flex-1">
+                <p class="text-[9px] uppercase tracking-widest opacity-70 mb-1">Durchsage</p>
+                <p id="announceText" class="text-base font-bold leading-snug"></p>
+            </div>
+            <button onclick="dismissAnnouncement()" class="text-[10px] uppercase tracking-widest font-bold border border-white/40 rounded px-3 py-2">OK</button>
+        </div>
+    </aside>
+
+    <aside id="previewBar" class="fixed top-0 inset-x-0 z-[60] bg-blue-900 text-white px-4 py-2 flex items-center justify-between step-hidden no-print font-sans">
+        <span class="text-[10px] uppercase tracking-widest">Vorschau: <b id="previewBarName"></b> (nichts wird gespeichert)</span>
+        <button onclick="exitPreview()" class="text-[10px] uppercase tracking-widest font-bold border border-white/40 rounded px-3 py-1">Zurück</button>
+    </aside>
+
+    <aside id="gmSheet" class="fixed inset-0 z-50 bg-black/95 overflow-y-auto p-4 md:p-8 step-hidden no-print">
+        <div class="max-w-3xl mx-auto bg-zinc-900 border border-zinc-800 rounded-xl p-6 md:p-10 text-left font-sans">
+            <div class="flex justify-between items-start mb-6">
+                <h2 class="text-red-800 text-xl font-bold uppercase tracking-[0.3em] typewriter-font">Spielleiter-Spickzettel</h2>
+                <button onclick="closeGmSheet()" class="text-zinc-500 hover:text-white text-[10px] uppercase tracking-widest font-bold">Schließen</button>
+            </div>
+            <div id="gmSheetBody" class="space-y-8 text-sm text-zinc-300 leading-relaxed"></div>
+        </div>
+    </aside>
+
+    <section id="slipsSheet"></section>
+
     <!-- PASSWORD MODAL -->
     <div id="passwordModal" class="fixed inset-0 bg-black/95 z-50 flex items-center justify-center p-4 step-hidden no-print">
         <div class="bg-zinc-900 border border-zinc-800 p-8 rounded-xl w-full max-w-sm">
@@ -184,6 +228,7 @@
 
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script src="firebase-config.js"></script>
     <script src="app.js"></script>
 </body>
