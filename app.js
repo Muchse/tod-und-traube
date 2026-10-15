@@ -42,6 +42,7 @@ async function loadCase() {
         let saved = null;
         try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (e) {}
         appState = saved || defaults;
+        appState.players = appState.players || {};
         appState.unlocked = {};
     }
 }
@@ -103,6 +104,7 @@ function mergeState(defaults, remote) {
         activeSides: { ...defaults.activeSides, ...(r.activeSides || {}) },
         introEnabled: r.introEnabled === undefined ? defaults.introEnabled : r.introEnabled,
         passwords: { ...defaults.passwords, ...(r.passwords || {}) },
+        players: r.players || {},
         unlocked: {}
     };
 }
@@ -136,11 +138,14 @@ function initAdmin() {
     list.innerHTML = '';
     rolesBase.forEach(r => {
         const div = document.createElement('div');
-        div.className = 'flex items-center justify-between p-3 bg-black/40 rounded-lg border border-zinc-800';
+        div.className = 'p-3 bg-black/40 rounded-lg border border-zinc-800 space-y-2';
         const isSideControl = r.isSide ? `<div id="toggle-${r.id}" class="admin-toggle ${appState.activeSides[r.id] ? 'active' : ''}" onclick="toggleAdminRole('${r.id}')"></div>` : '<span class="text-[8px] text-zinc-600 uppercase font-sans">Haupt</span>';
         div.innerHTML = `
-            <div class="flex-1 text-left"><p class="font-bold text-white text-xs font-sans">${r.name}</p></div>
-            <div class="flex items-center space-x-2"><input type="text" maxlength="3" class="w-10 bg-black border border-zinc-700 p-1 text-white text-center text-xs rounded font-mono" id="code-${r.id}" value="${appState.codes[r.id]}">${isSideControl}</div>
+            <div class="flex items-center justify-between">
+                <p class="font-bold text-white text-xs font-sans">${r.name}</p>
+                <div class="flex items-center space-x-2"><input type="text" maxlength="3" class="w-10 bg-black border border-zinc-700 p-1 text-white text-center text-xs rounded font-mono" id="code-${r.id}" value="${appState.codes[r.id]}">${isSideControl}</div>
+            </div>
+            <input type="text" maxlength="40" placeholder="Echter Name (nur für Dich)" class="w-full bg-black border border-zinc-700 p-1 px-2 text-white text-xs rounded font-sans" id="player-${r.id}" value="${esc(appState.players[r.id] || '')}">
         `;
         list.appendChild(div);
     });
@@ -161,6 +166,8 @@ function toggleIntroSetting() { appState.introEnabled = !appState.introEnabled; 
 function saveAdminChanges() {
     rolesBase.forEach(r => { const val = document.getElementById(`code-${r.id}`).value.trim(); if(val.length === 3) appState.codes[r.id] = val; });
     for(let i=1; i<=4; i++) { appState.passwords[i] = document.getElementById(`pw-${i}`).value.trim().toLowerCase(); }
+    appState.players = {};
+    rolesBase.forEach(r => { const n = document.getElementById(`player-${r.id}`).value.trim(); if (n) appState.players[r.id] = n; });
     const { unlocked, ...settings } = appState;
     if (liveSync()) {
         settingsRef.set(settings).then(() => location.reload()).catch(err => { console.error(err); alert('Speichern fehlgeschlagen: ' + err.message); });
@@ -461,7 +468,7 @@ function renderAdminFinale() {
         </div>`;
     box.innerHTML = `<div class="space-y-3">${row('Abstimmung offen', 'open')}${row('Auflösung zeigen', 'reveal')}</div>
         <p class="mt-4 text-[10px] text-zinc-400 font-sans">Abgestimmt: ${players.length - missing.length}/${players.length}</p>
-        <p class="mt-1 text-[10px] text-zinc-500 font-sans leading-relaxed">${missing.length ? 'Fehlt noch: ' + missing.map(r => r.name).join(', ') : 'Alle haben abgestimmt.'}</p>
+        <p class="mt-1 text-[10px] text-zinc-500 font-sans leading-relaxed">${missing.length ? 'Fehlt noch: ' + missing.map(r => labelOf(r.id)).join(', ') : 'Alle haben abgestimmt.'}</p>
         <button onclick="resetFinale()" class="mt-4 w-full bg-zinc-800 text-zinc-400 py-2 rounded font-bold text-[10px] uppercase tracking-widest font-sans">Finale zurücksetzen</button>`;
 }
 
@@ -471,6 +478,9 @@ function notesKey() { return NOTES_PREFIX + (epoch || 0) + '_' + currentRole.id;
 function esc(s) {
     return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
+
+function playerOf(id) { return (appState.players && appState.players[id]) || ''; }
+function labelOf(id) { const p = playerOf(id); return p ? `${nameOf(id)} (${p})` : nameOf(id); }
 
 const ADMIN_BTN = 'w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 py-3 rounded font-bold text-[10px] uppercase tracking-widest font-sans transition-colors';
 const ADMIN_NOTE = 'text-[10px] text-zinc-500 font-sans leading-relaxed';
@@ -533,10 +543,10 @@ function renderAdminPlayers() {
         const rounds = [1, 2, 3, 4].map(n => `<span class="${opened[n] ? 'text-white' : 'text-zinc-700'}">${n}</span>`).join(' ');
         const v = votes[r.id];
         return `<tr class="border-t border-zinc-800">
-            <td class="py-2 pr-3 text-white">${esc(r.name)}</td>
+            <td class="py-2 pr-3 text-white">${esc(r.name)}${playerOf(r.id) ? ` <span class="text-zinc-500">(${esc(playerOf(r.id))})</span>` : ''}</td>
             <td class="py-2 pr-3">${online ? '<span class="text-green-500">● online</span>' : '<span class="text-zinc-600">○ offline</span>'}</td>
             <td class="py-2 pr-3 font-mono tracking-widest">${rounds}</td>
-            <td class="py-2 text-zinc-300">${v ? '→ ' + esc(nameOf(v)) : '–'}</td></tr>`;
+            <td class="py-2 text-zinc-300">${v ? '→ ' + esc(labelOf(v)) : '–'}</td></tr>`;
     }).join('');
     box.innerHTML = `<table class="w-full text-xs font-sans"><thead><tr class="text-[9px] uppercase tracking-widest text-zinc-500 text-left">
         <th class="pb-2">Spieler</th><th class="pb-2">Status</th><th class="pb-2">Runden geöffnet</th><th class="pb-2">Anklage</th></tr></thead><tbody>${rows}</tbody></table>`;
@@ -547,7 +557,7 @@ function renderAdminPreview() {
     const box = document.getElementById('admin-preview');
     if (!box) return;
     box.innerHTML = activePlayers().map(r =>
-        `<button onclick="previewRole('${r.id}')" class="${ADMIN_BTN} text-left normal-case tracking-normal">${esc(r.name)}</button>`).join('');
+        `<button onclick="previewRole('${r.id}')" class="${ADMIN_BTN} text-left normal-case tracking-normal">${esc(labelOf(r.id))}</button>`).join('');
 }
 
 function previewRole(id) {
@@ -581,7 +591,7 @@ function buildSlips() {
         const qr = qrcode(0, 'M');
         qr.addData(`${base}?c=${code}`);
         qr.make();
-        return `<div class="slip"><div class="slip-title">Tod &amp; Traube</div><div class="slip-name">${esc(r.name)}</div>
+        return `<div class="slip"><div class="slip-title">Tod &amp; Traube</div>${playerOf(r.id) ? `<div class="slip-player">${esc(playerOf(r.id))}</div>` : ''}<div class="slip-name">${esc(r.name)}</div>
             <div class="slip-code">${esc(code)}</div><div class="slip-qr">${qr.createSvgTag(4, 0)}</div><div class="slip-url">${esc(base)}</div></div>`;
     }).join('')}</div>`;
 }
@@ -611,7 +621,7 @@ function openGmSheet() {
     const herrings = caseGm.redHerrings.map(([w, x]) => `<p><b class="text-white">${esc(w)}:</b> ${esc(x)}</p>`).join('');
     const story = resolveOptional(caseSolution.text).split('\n').map(t => `<p>${esc(t)}</p>`).join('');
     document.getElementById('gmSheetBody').innerHTML =
-        section('Täter', `<p class="text-lg text-white font-bold">${esc(nameOf(caseGm.culpritId))}</p>`) +
+        section('Täter', `<p class="text-lg text-white font-bold">${esc(labelOf(caseGm.culpritId))}</p>`) +
         section('Tathergang', `<div class="space-y-3">${story}</div>`) +
         section('Zeitlinie', timeline) +
         section('Schlüsselhinweise gegen den Täter', list(caseGm.keyClues)) +
@@ -629,8 +639,8 @@ function exportResult() {
         'Tod & Traube - Ergebnis',
         'Datum: ' + new Date().toLocaleString('de-DE'),
         '',
-        'Täter: ' + (culprit ? nameOf(culprit) : 'unbekannt'),
-        `Spieler (${players.length}): ` + players.map(r => r.name).join(', '),
+        'Täter: ' + (culprit ? labelOf(culprit) : 'unbekannt'),
+        `Spieler (${players.length}): ` + players.map(r => labelOf(r.id)).join(', '),
         'Gisela Fassbinder dabei: ' + (appState.activeSides.fassbinder ? 'ja' : 'nein'),
         'Freigeschaltete Runden: ' + ([1, 2, 3, 4].filter(isUnlocked).join(', ') || 'keine'),
         '',
@@ -641,11 +651,11 @@ function exportResult() {
     players.forEach(r => {
         const v = votes[r.id];
         if (v) { counts[v] = (counts[v] || 0) + 1; if (v === culprit) right++; }
-        lines.push(`  ${r.name} -> ${v ? nameOf(v) + (v === culprit ? ' (richtig)' : ' (falsch)') : 'keine Anklage'}`);
+        lines.push(`  ${labelOf(r.id)} -> ${v ? labelOf(v) + (v === culprit ? ' (richtig)' : ' (falsch)') : 'keine Anklage'}`);
     });
     const cast = Object.keys(votes).filter(id => players.some(p => p.id === id)).length;
     lines.push('', `Richtig getippt: ${right} von ${cast} abgegebenen Anklagen`, '', 'Stimmen je Person:');
-    Object.entries(counts).sort((a, b) => b[1] - a[1]).forEach(([id, n]) => lines.push(`  ${nameOf(id)}: ${n}`));
+    Object.entries(counts).sort((a, b) => b[1] - a[1]).forEach(([id, n]) => lines.push(`  ${labelOf(id)}: ${n}`));
     if (!cast) lines.push('  (keine Stimmen)');
     const blob = new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/plain;charset=utf-8' });
     const a = document.createElement('a');

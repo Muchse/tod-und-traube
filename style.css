@@ -134,7 +134,9 @@ body.previewing { padding-top: 40px; }
 .slips-grid { display: grid; grid-template-columns: 1fr 1fr; }
 .slip { border: 1px dashed #555; padding: 16px; text-align: center; break-inside: avoid; font-family: 'Inter', sans-serif; color: #000; }
 .slip-title { font-family: 'Special Elite', cursive; letter-spacing: 0.2em; font-size: 11px; text-transform: uppercase; color: #991b1b; }
+.slip-player { font-size: 22px; font-weight: 700; margin-top: 6px; }
 .slip-name { font-size: 16px; font-weight: 700; margin: 6px 0; }
+.slip-player + .slip-name { font-size: 13px; font-weight: 400; color: #444; margin: 2px 0 6px; }
 .slip-code { font-family: monospace; font-size: 34px; letter-spacing: 0.3em; font-weight: 700; margin: 4px 0 8px; }
 .slip-qr svg { width: 110px; height: 110px; }
 .slip-url { font-size: 9px; color: #444; word-break: break-all; margin-top: 6px; }
