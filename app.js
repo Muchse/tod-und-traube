@@ -9,7 +9,7 @@ let appState = null;
 const STORAGE_KEY = 'krimi_v10';
 
 async function loadCase() {
-    const res = await fetch('case.json');
+    const res = await fetch('case.json', { cache: 'no-cache' });
     if (!res.ok) throw new Error('case.json: HTTP ' + res.status);
     const data = await res.json();
     rolesBase = data.roles;
