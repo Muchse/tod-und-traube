@@ -345,5 +345,26 @@
       "Vor dem Finale die Abstimmung öffnen. In der Spielerübersicht siehst du, wer schon angeklagt hat und wen.",
       "Ohne Gisela entfallen zwei Hinweise (Sophias 17:30-Uhr-Alibi, klemmendes Fenster samt Kompost-Spur). Der Fall bleibt lösbar."
     ]
+  },
+  "invitation": {
+    "title": "Tod & Traube",
+    "subtitle": "Ein Krimi-Abend im Weingut von Bernstein",
+    "intro": [
+      "Radebeul, ein Abend im Mai: Auf dem Weingut von Bernstein wurde Gunter von Bernstein, das Oberhaupt der Familie, tot im Weinberg gefunden. Erschlagen. Und unter den Anwesenden ist jemand, der mehr weiß, als er sagt.",
+      "Du spielst an diesem Abend eine feste Rolle mit eigener Geschichte, einem Geheimnis und einer Mission. Befragt einander, vergleicht Eure Beobachtungen und findet gemeinsam heraus, wer der Täter ist - und warum. Am Ende wird abgestimmt."
+    ],
+    "steps": [
+      "Scanne den QR-Code mit der Handykamera oder öffne die Adresse unten im Browser.",
+      "Gib Deine Zugangsnummer ein. Beim Scannen geschieht das automatisch.",
+      "Lies Dein Dossier in Ruhe: Deine Geschichte, Dein Geheimnis und Deine Mission. Behalte alles für Dich.",
+      "Im Laufe des Abends schaltet die Spielleitung neue Hinweise frei. Sie erscheinen von selbst auf Deinem Handy."
+    ],
+    "rules": [
+      "Bleibe in Deiner Rolle und halte Dein Dossier geheim.",
+      "Dein Dossier sagt Dir, ob Du lügen darfst. Halte Dich daran.",
+      "Bring Dein Smartphone mit, möglichst aufgeladen. Du musst nichts installieren, alles läuft im Browser.",
+      "Dein Zugang gehört nur Dir. Bitte gib Zettel und Nummer nicht weiter."
+    ],
+    "footer": "Bitte vertraulich behandeln - Dein Dossier ist nur für Dich."
   }
 }

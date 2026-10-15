@@ -16,6 +16,7 @@ async function loadCase() {
     roleContent = data.content;
     caseSolution = data.solution || null;
     caseGm = data.gmNotes || null;
+    caseInvitation = data.invitation || null;
     const defaults = {
         codes: rolesBase.reduce((acc, r) => ({ ...acc, [r.id]: r.defaultCode }), {}),
         activeSides: rolesBase.filter(r => r.isSide).reduce((acc, r) => ({ ...acc, [r.id]: true }), {}),
@@ -43,6 +44,7 @@ async function loadCase() {
         try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (e) {}
         appState = saved || defaults;
         appState.players = appState.players || {};
+        appState.eventInfo = appState.eventInfo || '';
         appState.unlocked = {};
     }
 }
@@ -63,6 +65,7 @@ let presence = {};
 let progress = {};
 let previewMode = false;
 let caseGm = null;
+let caseInvitation = null;
 let finale = {};          // { open, reveal }
 let votes = {};           // roleId -> verdaechtigte roleId
 let caseSolution = null;
@@ -105,6 +108,7 @@ function mergeState(defaults, remote) {
         introEnabled: r.introEnabled === undefined ? defaults.introEnabled : r.introEnabled,
         passwords: { ...defaults.passwords, ...(r.passwords || {}) },
         players: r.players || {},
+        eventInfo: r.eventInfo || '',
         unlocked: {}
     };
 }
@@ -622,25 +626,6 @@ function exitPreview() {
 // Zugangszettel (QR-Link meldet direkt mit dem Code an)
 function baseUrl() { return location.origin + location.pathname.replace(/[^/]*$/, ''); }
 
-function buildSlips() {
-    const base = baseUrl();
-    return `<div class="slips-grid">${activePlayers().map(r => {
-        const code = appState.codes[r.id];
-        const qr = qrcode(0, 'M');
-        qr.addData(`${base}?c=${code}`);
-        qr.make();
-        return `<div class="slip"><div class="slip-title">Tod &amp; Traube</div>${playerOf(r.id) ? `<div class="slip-player">${esc(playerOf(r.id))}</div>` : ''}<div class="slip-name">${esc(r.name)}</div>
-            <div class="slip-code">${esc(code)}</div><div class="slip-qr">${qr.createSvgTag(4, 0)}</div><div class="slip-url">${esc(base)}</div></div>`;
-    }).join('')}</div>`;
-}
-
-function printSlips() {
-    document.getElementById('slipsSheet').innerHTML = buildSlips();
-    document.body.classList.add('printing-slips');
-    window.print();
-}
-window.addEventListener('afterprint', () => document.body.classList.remove('printing-slips'));
-
 function autoLoginFromUrl() {
     const code = new URLSearchParams(location.search).get('c');
     if (!code || code === '123') return;
@@ -668,42 +653,8 @@ function openGmSheet() {
     document.getElementById('gmSheet').classList.remove('step-hidden');
 }
 function closeGmSheet() { document.getElementById('gmSheet').classList.add('step-hidden'); }
-
-// Ergebnis exportieren (Textdatei)
-function exportResult() {
-    const players = activePlayers();
-    const culprit = caseSolution ? caseSolution.culpritId : null;
-    const lines = [
-        'Tod & Traube - Ergebnis',
-        'Datum: ' + new Date().toLocaleString('de-DE'),
-        '',
-        'Täter: ' + (culprit ? labelOf(culprit) : 'unbekannt'),
-        `Spieler (${players.length}): ` + players.map(r => labelOf(r.id)).join(', '),
-        'Gisela Fassbinder dabei: ' + (appState.activeSides.fassbinder ? 'ja' : 'nein'),
-        'Freigeschaltete Runden: ' + ([1, 2, 3, 4].filter(isUnlocked).join(', ') || 'keine'),
-        '',
-        'Anklagen:'
-    ];
-    let right = 0;
-    const counts = {};
-    players.forEach(r => {
-        const v = votes[r.id];
-        if (v) { counts[v] = (counts[v] || 0) + 1; if (v === culprit) right++; }
-        lines.push(`  ${labelOf(r.id)} -> ${v ? labelOf(v) + (v === culprit ? ' (richtig)' : ' (falsch)') : 'keine Anklage'}`);
-    });
-    const cast = Object.keys(votes).filter(id => players.some(p => p.id === id)).length;
-    lines.push('', `Richtig getippt: ${right} von ${cast} abgegebenen Anklagen`, '', 'Stimmen je Person:');
-    Object.entries(counts).sort((a, b) => b[1] - a[1]).forEach(([id, n]) => lines.push(`  ${labelOf(id)}: ${n}`));
-    if (!cast) lines.push('  (keine Stimmen)');
-    const blob = new Blob([lines.join('\r\n') + '\r\n'], { type: 'text/plain;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `tod-und-traube-ergebnis-${new Date().toISOString().slice(0, 10)}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-}
+function printGmSheet() { document.body.classList.add('printing-gm'); window.print(); }
+window.addEventListener('afterprint', () => document.body.classList.remove('printing-gm'));
 
 // Neues Spiel: Runden, Finale, Anklagen, Durchsage, Fortschritt zuruecksetzen
 function newGame() {
@@ -721,12 +672,11 @@ function renderAdminTools() {
     const box = document.getElementById('admin-tools');
     if (!box) return;
     const live = liveSync();
-    box.innerHTML = `<button onclick="printSlips()" class="${ADMIN_BTN}">Zugangszettel drucken</button>
-        <button onclick="openGmSheet()" class="${ADMIN_BTN}">Spickzettel</button>
-        <button onclick="exportResult()" class="${ADMIN_BTN}">Ergebnis exportieren</button>
+    box.innerHTML = `<button onclick="openSlipDialog()" class="${ADMIN_BTN}">Zugangszettel (PDF)</button>
+        <button onclick="openGmSheet()" class="${ADMIN_BTN}">Spickzettel (drucken)</button>
+        <button onclick="exportResult()" class="${ADMIN_BTN}">Ergebnis (PDF)</button>
         <button onclick="newGame()" ${live ? '' : 'disabled'} class="w-full bg-red-950 ${live ? 'hover:bg-red-900' : 'opacity-40'} text-white py-3 rounded font-bold text-[10px] uppercase tracking-widest border border-red-800 font-sans">Neues Spiel</button>
-        ${live ? '' : `<p class="${ADMIN_NOTE}">Neues Spiel braucht Live-Sync.</p>`}
-        <p class="${ADMIN_NOTE}">Zettel zeigen die gespeicherten Codes. Nach Änderungen erst speichern.</p>`;
+        ${live ? '' : `<p class="${ADMIN_NOTE}">Neues Spiel braucht Live-Sync.</p>`}`;
 }
 
 window.onload = () => {
