@@ -14,6 +14,7 @@ async function loadCase() {
     const data = await res.json();
     rolesBase = data.roles;
     roleContent = data.content;
+    caseSolution = data.solution || null;
     const defaults = {
         codes: rolesBase.reduce((acc, r) => ({ ...acc, [r.id]: r.defaultCode }), {}),
         activeSides: rolesBase.filter(r => r.isSide).reduce((acc, r) => ({ ...acc, [r.id]: true }), {}),
@@ -27,6 +28,8 @@ async function loadCase() {
             appState.unlocked = snap.val() || {};
             onUnlockedChange();
         });
+        finaleRef.on('value', snap => { finale = snap.val() || {}; onFinaleChange(); });
+        votesRef.on('value', snap => { votes = snap.val() || {}; onFinaleChange(); });
     } else {
         let saved = null;
         try { saved = JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch (e) {}
@@ -40,6 +43,12 @@ async function loadCase() {
 let settingsRef = null;
 let unlockedRef = null;
 let presenceRef = null;
+let finaleRef = null;
+let votesRef = null;
+let finale = {};          // { open, reveal }
+let votes = {};           // roleId -> verdaechtigte roleId
+let caseSolution = null;
+let revealDismissed = false;
 const hintMode = {}; // Runde -> 'live' | 'password'
 
 function liveSync() { return !!settingsRef; }
@@ -57,10 +66,12 @@ async function connectLiveSync() {
         settingsRef = game.child('settings');
         unlockedRef = game.child('unlocked');
         presenceRef = game.child('presence');
+        finaleRef = game.child('finale');
+        votesRef = game.child('votes');
         return snap.val() || {};
     } catch (err) {
         console.error('Live-Sync nicht verfuegbar, lokaler Modus:', err);
-        settingsRef = unlockedRef = presenceRef = null;
+        settingsRef = unlockedRef = presenceRef = finaleRef = votesRef = null;
         return null;
     }
 }
@@ -128,6 +139,7 @@ function initAdmin() {
     for(let i=1; i<=4; i++) { document.getElementById(`pw-${i}`).value = appState.passwords[i]; }
     appState.introEnabled ? document.getElementById('toggle-intro').classList.add('active') : document.getElementById('toggle-intro').classList.remove('active');
     renderAdminLive();
+    renderAdminFinale();
     watchPresence();
 }
 
@@ -197,6 +209,9 @@ function renderDossier() {
     document.getElementById('dossDetails').textContent = currentRole.details;
     for (let i = 1; i <= 4; i++) { delete hintMode[i]; lockHint(i); }
     refreshHints();
+    renderNotebook();
+    renderVoting();
+    renderReveal();
     lucide.createIcons();
 }
 
@@ -279,6 +294,148 @@ function initSlider(container) {
         if (touchEndX - touchStartX > 50) { index = (index - 1 + slides.length) % slides.length; update(); }
     });
 }
+// --- Notizbuch (nur lokal auf dem Geraet des Spielers) ---
+const NOTES_PREFIX = 'krimi_notes_';
+const MARK_ORDER = ['', 'suspect', 'cleared'];
+const MARK_VIEW = {
+    '': ['○', 'text-zinc-400', 'offen'],
+    suspect: ['!', 'text-red-800', 'verdächtig'],
+    cleared: ['✓', 'text-green-800', 'entlastet']
+};
+
+function suspectsFor(roleId) {
+    return rolesBase.filter(r => r.status !== 'ERMITTLER' && r.id !== roleId && (!r.isSide || appState.activeSides[r.id]));
+}
+
+function activePlayers() {
+    return rolesBase.filter(r => !r.isSide || appState.activeSides[r.id]);
+}
+
+function loadNotes() {
+    try { return JSON.parse(localStorage.getItem(NOTES_PREFIX + currentRole.id)) || { marks: {}, text: '' }; } catch (e) { return { marks: {}, text: '' }; }
+}
+function saveNotes(n) { try { localStorage.setItem(NOTES_PREFIX + currentRole.id, JSON.stringify(n)); } catch (e) {} }
+
+function renderNotebook() {
+    const notes = loadNotes();
+    const box = document.getElementById('notebookSuspects');
+    box.innerHTML = '';
+    suspectsFor(currentRole.id).forEach(r => {
+        const [sym, cls, label] = MARK_VIEW[notes.marks[r.id] || ''];
+        const b = document.createElement('button');
+        b.className = 'flex items-center justify-between px-3 py-2 rounded border border-zinc-300 bg-white/60 text-left readable-font text-sm';
+        b.innerHTML = `<span>${r.name}</span><span class="font-bold ${cls}">${sym} ${label}</span>`;
+        b.onclick = () => {
+            const n = loadNotes();
+            n.marks[r.id] = MARK_ORDER[(MARK_ORDER.indexOf(n.marks[r.id] || '') + 1) % MARK_ORDER.length];
+            saveNotes(n);
+            renderNotebook();
+        };
+        box.appendChild(b);
+    });
+    const ta = document.getElementById('notebookText');
+    ta.value = notes.text || '';
+    ta.oninput = () => { const n = loadNotes(); n.text = ta.value; saveNotes(n); };
+}
+
+// --- Anklage, Aufloesung und Finale-Steuerung (nur mit Live-Sync) ---
+function dossierVisible() { return !document.getElementById('step-dossier').classList.contains('step-hidden'); }
+function nameOf(id) { const r = rolesBase.find(x => x.id === id); return r ? r.name : id; }
+
+function onFinaleChange() {
+    renderAdminFinale();
+    renderVoting();
+    renderReveal();
+}
+
+function renderVoting() {
+    const sec = document.getElementById('voting');
+    const open = liveSync() && currentRole && finale.open && !finale.reveal && dossierVisible();
+    sec.classList.toggle('step-hidden', !open);
+    if (!open) return;
+    const body = document.getElementById('votingBody');
+    const mine = votes[currentRole.id];
+    const key = mine || 'open';
+    if (body.dataset.key === key) return; // Auswahl nicht wegrendern, wenn andere abstimmen
+    body.dataset.key = key;
+    if (mine) {
+        body.innerHTML = `<p class="readable-font text-sm">Deine Anklage ist abgegeben: <b>${nameOf(mine)}</b>. Sie lässt sich nicht mehr ändern. Warte auf die Auflösung.</p>`;
+        return;
+    }
+    const options = suspectsFor(currentRole.id).map(r =>
+        `<label class="flex items-center gap-3 p-3 rounded border border-zinc-300 bg-white/60 readable-font text-sm cursor-pointer"><input type="radio" name="vote" value="${r.id}"> ${r.name}</label>`).join('');
+    body.innerHTML = `<p class="readable-font text-sm mb-4">Wer hat Gunter von Bernstein erschlagen? Du kannst nur einmal anklagen.</p>
+        <div class="space-y-2 mb-4">${options}</div>
+        <button onclick="submitVote()" class="bg-red-950 text-white px-6 py-3 rounded font-bold text-[10px] uppercase tracking-widest font-sans">Anklage erheben</button>`;
+}
+
+function submitVote() {
+    const picked = document.querySelector('input[name="vote"]:checked');
+    if (!picked || !votesRef) return;
+    if (!confirm(`Anklage gegen ${nameOf(picked.value)} erheben? Das lässt sich nicht mehr ändern.`)) return;
+    votesRef.child(currentRole.id).set(picked.value);
+}
+
+function renderReveal() {
+    const ov = document.getElementById('revealOverlay');
+    if (!finale.reveal) revealDismissed = false;
+    if (!(liveSync() && currentRole && finale.reveal && !revealDismissed && caseSolution)) {
+        ov.classList.add('step-hidden');
+        return;
+    }
+    const wasHidden = ov.classList.contains('step-hidden');
+    const sol = caseSolution;
+    document.getElementById('revealStamp').textContent = sol.stampLabel;
+    document.getElementById('revealName').textContent = nameOf(sol.culpritId);
+    const mine = votes[currentRole.id];
+    document.getElementById('revealOwn').textContent = !mine ? 'Du hast keine Anklage abgegeben.'
+        : mine === sol.culpritId ? 'Du hattest recht.' : 'Diesmal lagst Du falsch.';
+    const story = document.getElementById('revealStory');
+    story.innerHTML = '';
+    sol.text.split('\n').forEach(t => { const p = document.createElement('p'); p.textContent = t; story.appendChild(p); });
+    const counts = {};
+    Object.values(votes).forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+    const rows = Object.entries(counts).sort((a, b) => b[1] - a[1])
+        .map(([id, n]) => `<div class="flex justify-between py-1 ${id === sol.culpritId ? 'text-red-500 font-bold' : 'text-zinc-400'}"><span>${nameOf(id)}</span><span>${n}</span></div>`).join('');
+    document.getElementById('revealTally').innerHTML = `<p class="text-[9px] uppercase tracking-widest text-zinc-500 mb-2">Die Anklagen</p>${rows || '<p class="text-zinc-500">Keine Stimmen.</p>'}`;
+    ov.classList.remove('step-hidden');
+    if (wasHidden) {
+        const stamp = document.getElementById('revealStamp');
+        stamp.classList.remove('stamp-animate');
+        void stamp.offsetWidth;
+        stamp.classList.add('stamp-animate');
+    }
+}
+
+function dismissReveal() { revealDismissed = true; renderReveal(); }
+
+function setFinale(key, value) { if (finaleRef) finaleRef.child(key).set(value); }
+function resetFinale() {
+    if (!finaleRef || !confirm('Abstimmung und Auflösung wirklich zurücksetzen?')) return;
+    votesRef.remove();
+    finaleRef.set({ open: false, reveal: false });
+}
+
+function renderAdminFinale() {
+    const box = document.getElementById('admin-finale');
+    if (!box) return;
+    if (!liveSync()) {
+        box.innerHTML = '<p class="text-[10px] text-zinc-500 font-sans leading-relaxed">Live-Sync ist aus.</p>';
+        return;
+    }
+    const players = activePlayers();
+    const missing = players.filter(r => !votes[r.id]);
+    const row = (label, key) => `
+        <div class="flex items-center justify-between p-3 bg-black/40 rounded-lg border border-zinc-800">
+            <p class="font-bold text-white text-xs font-sans">${label}</p>
+            <div class="admin-toggle ${finale[key] ? 'active' : ''}" onclick="setFinale('${key}', ${!finale[key]})"></div>
+        </div>`;
+    box.innerHTML = `<div class="space-y-3">${row('Abstimmung offen', 'open')}${row('Auflösung zeigen', 'reveal')}</div>
+        <p class="mt-4 text-[10px] text-zinc-400 font-sans">Abgestimmt: ${players.length - missing.length}/${players.length}</p>
+        <p class="mt-1 text-[10px] text-zinc-500 font-sans leading-relaxed">${missing.length ? 'Fehlt noch: ' + missing.map(r => r.name).join(', ') : 'Alle haben abgestimmt.'}</p>
+        <button onclick="resetFinale()" class="mt-4 w-full bg-zinc-800 text-zinc-400 py-2 rounded font-bold text-[10px] uppercase tracking-widest font-sans">Finale zurücksetzen</button>`;
+}
+
 window.onload = () => {
     lucide.createIcons();
     loadCase().catch(err => {
