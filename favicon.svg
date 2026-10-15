@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <defs>
+    <clipPath id="bowl"><path d="M20 10H44C44 24 40 33 32 34C24 33 20 24 20 10Z"/></clipPath>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0a0a0c"/>
+  <path d="M20 10H44C44 24 40 33 32 34C24 33 20 24 20 10Z" fill="#f4f1ea"/>
+  <rect x="18" y="21" width="28" height="16" fill="#991b1b" clip-path="url(#bowl)"/>
+  <rect x="30.5" y="34" width="3" height="15" fill="#f4f1ea"/>
+  <rect x="21" y="49" width="22" height="3.5" rx="1.75" fill="#f4f1ea"/>
+  <path d="M52 8C52 8 47 14 47 17.5C47 20.3 49.2 22.5 52 22.5C54.8 22.5 57 20.3 57 17.5C57 14 52 8 52 8Z" fill="#c62828"/>
+</svg>

@@ -517,7 +517,7 @@ function esc(s) {
 function playerOf(id) { return (appState.players && appState.players[id]) || ''; }
 function labelOf(id) { const p = playerOf(id); return p ? `${nameOf(id)} (${p})` : nameOf(id); }
 
-const ADMIN_BTN = 'w-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 py-3 rounded font-bold text-[10px] uppercase tracking-widest font-sans transition-colors';
+const ADMIN_BTN = 'w-full px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 py-3 rounded font-bold text-[10px] uppercase tracking-widest font-sans transition-colors';
 const ADMIN_NOTE = 'text-[10px] text-zinc-500 font-sans leading-relaxed';
 
 // Durchsage
