@@ -185,7 +185,11 @@ function saveAdminChanges() {
 function handleLogin() {
     if (!appState) { showError(); return; }
     const entered = document.getElementById('accessCode').value.trim();
-    if (entered === '123') { showAdmin(); return; }
+    if (entered === '123') {
+        try { localStorage.setItem(LOGIN_KEY, JSON.stringify({ admin: true })); } catch (e) {}
+        showAdmin();
+        return;
+    }
     const roleId = Object.keys(appState.codes).find(id => appState.codes[id] === entered);
     if (!roleId) { showError(); return; }
     const rData = rolesBase.find(r => r.id === roleId);
@@ -210,6 +214,7 @@ function restoreLogin() {
     let saved = null;
     try { saved = JSON.parse(localStorage.getItem(LOGIN_KEY)); } catch (e) {}
     if (!saved) return false;
+    if (saved.admin) { showAdmin(); return true; }
     const r = rolesBase.find(x => x.id === saved.roleId);
     const valid = r && appState.codes[r.id] === saved.code && (!r.isSide || appState.activeSides[r.id]);
     if (!valid) { try { localStorage.removeItem(LOGIN_KEY); } catch (e) {} return false; }
