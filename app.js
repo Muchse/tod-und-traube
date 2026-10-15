@@ -409,7 +409,14 @@ function renderReveal() {
 
 function dismissReveal() { revealDismissed = true; renderReveal(); }
 
-function setFinale(key, value) { if (finaleRef) finaleRef.child(key).set(value); }
+function setFinale(key, value) {
+    if (!finaleRef) return;
+    if (key === 'reveal' && value && !confirm('Auflösung jetzt für ALLE Spieler anzeigen?')) {
+        renderAdminFinale(); // Schalter zurueck in die alte Stellung
+        return;
+    }
+    finaleRef.child(key).set(value);
+}
 function resetFinale() {
     if (!finaleRef || !confirm('Abstimmung und Auflösung wirklich zurücksetzen?')) return;
     votesRef.remove();
