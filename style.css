@@ -128,15 +128,3 @@ body {
 
 /* Vorschau-Modus: Platz fuer die Leiste oben */
 body.previewing { padding-top: 40px; }
-
-/* Spielleiter-Spickzettel drucken */
-@media print {
-    body.printing-gm { background: #fff !important; display: block !important; }
-    body.printing-gm > *:not(#gmSheet) { display: none !important; }
-    body.printing-gm #gmSheet { position: static !important; display: block !important; overflow: visible !important; background: #fff !important; padding: 0 !important; }
-    body.printing-gm #gmSheet * { color: #000 !important; background: transparent !important; border-color: #999 !important; box-shadow: none !important; }
-    body.printing-gm #gmSheet > div { max-width: none !important; border: 0 !important; padding: 0 !important; }
-    body.printing-gm #gmSheet .gm-actions { display: none !important; }
-    body.printing-gm #gmSheet section { break-inside: avoid; }
-    body.printing-gm #gmSheet h2, body.printing-gm #gmSheet h3 { color: #991b1b !important; }
-}

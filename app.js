@@ -653,8 +653,6 @@ function openGmSheet() {
     document.getElementById('gmSheet').classList.remove('step-hidden');
 }
 function closeGmSheet() { document.getElementById('gmSheet').classList.add('step-hidden'); }
-function printGmSheet() { document.body.classList.add('printing-gm'); window.print(); }
-window.addEventListener('afterprint', () => document.body.classList.remove('printing-gm'));
 
 // Neues Spiel: Runden, Finale, Anklagen, Durchsage, Fortschritt zuruecksetzen
 function newGame() {
@@ -673,7 +671,7 @@ function renderAdminTools() {
     if (!box) return;
     const live = liveSync();
     box.innerHTML = `<button onclick="openSlipDialog()" class="${ADMIN_BTN}">Zugangszettel (PDF)</button>
-        <button onclick="openGmSheet()" class="${ADMIN_BTN}">Spickzettel (drucken)</button>
+        <button onclick="openGmSheet()" class="${ADMIN_BTN}">Spielleiter-Spickzettel</button>
         <button onclick="exportResult()" class="${ADMIN_BTN}">Ergebnis (PDF)</button>
         <button onclick="newGame()" ${live ? '' : 'disabled'} class="w-full bg-red-950 ${live ? 'hover:bg-red-900' : 'opacity-40'} text-white py-3 rounded font-bold text-[10px] uppercase tracking-widest border border-red-800 font-sans">Neues Spiel</button>
         ${live ? '' : `<p class="${ADMIN_NOTE}">Neues Spiel braucht Live-Sync.</p>`}`;

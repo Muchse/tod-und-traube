@@ -388,3 +388,108 @@ function exportResult() {
     pdfFooter(doc, 'Tod & Traube - Auswertung');
     doc.save(`tod-und-traube-auswertung-${new Date().toISOString().slice(0, 10)}.pdf`);
 }
+
+// --- Spielleiter-Spickzettel als PDF ---------------------------------------
+
+function pdfBullets(doc, items, y) {
+    const M = PDF_MARGIN;
+    const W = PDF_CONTENT_W;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    items.forEach(item => {
+        const lines = doc.splitTextToSize(pdfSafe(item), W - 6);
+        y = pdfEnsure(doc, y, lines.length * 4.6 + 2);
+        doc.setTextColor(...PDF_RED);
+        doc.text('-', M, y);
+        doc.setTextColor(50);
+        doc.text(lines, M + 6, y);
+        y += lines.length * 4.6 + 2;
+    });
+    return y + 4;
+}
+
+function exportGmSheet() {
+    if (!caseGm || !caseSolution) return;
+    if (!window.jspdf) { alert('PDF-Erzeugung ist nicht verfügbar (Internetverbindung prüfen).'); return; }
+    const doc = newPdf();
+    const M = PDF_MARGIN;
+    const W = PDF_CONTENT_W;
+    pdfBanner(doc, 'Spickzettel', 'Tod & Traube - nur für die Spielleitung');
+    let y = 54;
+
+    // Täter
+    doc.setFillColor(...PDF_PAPER);
+    doc.setDrawColor(...PDF_RED);
+    doc.setLineWidth(0.6);
+    doc.roundedRect(M, y, W, 24, 2, 2, 'FD');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(...PDF_RED);
+    doc.text(pdfSafe(caseSolution.stampLabel || 'TÄTER').toUpperCase(), M + 6, y + 9);
+    doc.setFontSize(18);
+    doc.setTextColor(20);
+    doc.text(pdfSafe(labelOf(caseGm.culpritId)), M + 6, y + 18);
+    y += 34;
+
+    // Tathergang
+    y = pdfHeading(doc, 'Tathergang', y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(50);
+    resolveOptional(caseSolution.text).split('\n').forEach(p => {
+        const lines = doc.splitTextToSize(pdfSafe(p), W);
+        y = pdfEnsure(doc, y, lines.length * 4.6 + 3);
+        doc.text(lines, M, y);
+        y += lines.length * 4.6 + 2.5;
+    });
+    y += 4;
+
+    // Zeitlinie
+    y = pdfEnsure(doc, y, 32);
+    y = pdfHeading(doc, 'Zeitlinie', y);
+    caseGm.timeline.forEach(([time, text]) => {
+        const lines = doc.splitTextToSize(pdfSafe(text), W - 36);
+        y = pdfEnsure(doc, y, lines.length * 4.6 + 3);
+        doc.setDrawColor(225);
+        doc.setLineWidth(0.2);
+        doc.line(M, y - 4.2, M + W, y - 4.2);
+        doc.setFont('courier', 'bold');
+        doc.setFontSize(9);
+        doc.setTextColor(110);
+        doc.text(pdfSafe(time), M, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9.5);
+        doc.setTextColor(40);
+        doc.text(lines, M + 36, y);
+        y += lines.length * 4.6 + 2;
+    });
+    y += 6;
+
+    y = pdfEnsure(doc, y, 32);
+    y = pdfHeading(doc, 'Schlüsselhinweise gegen den Täter', y);
+    y = pdfBullets(doc, caseGm.keyClues, y);
+
+    y = pdfEnsure(doc, y, 32);
+    y = pdfHeading(doc, 'Falsche Fährten', y);
+    caseGm.redHerrings.forEach(([who, text]) => {
+        const lines = doc.splitTextToSize(pdfSafe(text), W - 6);
+        y = pdfEnsure(doc, y, lines.length * 4.6 + 8);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        doc.setTextColor(20);
+        doc.text(pdfSafe(who), M, y);
+        y += 4.6;
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(50);
+        doc.text(lines, M + 6, y);
+        y += lines.length * 4.6 + 3;
+    });
+    y += 3;
+
+    y = pdfEnsure(doc, y, 32);
+    y = pdfHeading(doc, 'Tipps zur Spielleitung', y);
+    y = pdfBullets(doc, caseGm.tips, y);
+
+    pdfFooter(doc, 'Tod & Traube - Spielleiter-Spickzettel - vertraulich');
+    doc.save('Spielleiter-Spickzettel-Tod-und-Traube.pdf');
+}
