@@ -145,14 +145,14 @@ function initAdmin() {
             : '<span class="text-[8px] text-zinc-600 uppercase">Haupt</span>';
         return `<tr id="row-${r.id}" class="border-t border-zinc-800">
             <td class="py-2 pr-3 text-white font-bold whitespace-nowrap">${esc(r.name)}</td>
-            <td class="py-2 pr-3"><input type="text" maxlength="40" placeholder="Echter Name" class="w-full min-w-[110px] bg-black border border-zinc-700 p-1 px-2 text-white text-xs rounded font-sans" id="player-${r.id}" value="${esc(appState.players[r.id] || '')}"></td>
+            <td class="py-2 pr-3"><input type="text" maxlength="40" placeholder="Echter Name" class="w-24 bg-black border border-zinc-700 p-1 px-2 text-white text-xs rounded font-sans" id="player-${r.id}" value="${esc(appState.players[r.id] || '')}"></td>
             <td class="py-2 pr-3"><input type="text" maxlength="3" class="w-12 bg-black border border-zinc-700 p-1 text-white text-center text-xs rounded font-mono" id="code-${r.id}" value="${esc(appState.codes[r.id])}"></td>
             <td class="py-2 pr-3">${side}</td>
             <td class="py-2 pr-3 whitespace-nowrap" id="st-${r.id}"></td>
             <td class="py-2 pr-3 font-mono tracking-widest whitespace-nowrap" id="rd-${r.id}"></td>
             <td class="py-2 text-zinc-300" id="vt-${r.id}"></td></tr>`;
     }).join('');
-    document.getElementById('admin-roster').innerHTML = `<div class="overflow-x-auto"><table class="w-full min-w-[680px] text-xs font-sans">
+    document.getElementById('admin-roster').innerHTML = `<div class="overflow-x-auto"><table class="w-full min-w-max text-xs font-sans">
         <thead><tr class="text-[9px] uppercase tracking-widest text-zinc-500 text-left">
             <th class="pb-2 pr-3">Rolle</th><th class="pb-2 pr-3">Echter Name</th><th class="pb-2 pr-3">Code</th><th class="pb-2 pr-3">Aktiv</th>
             <th class="pb-2 pr-3">Status</th><th class="pb-2 pr-3">Runden geöffnet</th><th class="pb-2">Anklage</th></tr></thead>
@@ -657,13 +657,16 @@ function closeGmSheet() { document.getElementById('gmSheet').classList.add('step
 // Neues Spiel: Runden, Finale, Anklagen, Durchsage, Fortschritt zuruecksetzen
 function newGame() {
     if (!liveSync()) return;
-    if (!confirm('NEUES SPIEL starten?\nRunden werden gesperrt, Anklagen, Finale, Durchsage und Spielfortschritt gelöscht.')) return;
+    if (!confirm('NEUES SPIEL starten?\nRunden werden gesperrt, Anklagen, Finale, Durchsage, Spielfortschritt und die echten Namen gelöscht.')) return;
     lockAllRounds();
     finaleRef.set({ open: false, reveal: false });
     votesRef.remove();
     progressRef.remove();
     announceRef.remove();
     epochRef.set(Date.now());
+    settingsRef.child('players').remove();
+    appState.players = {};
+    initAdmin();
 }
 
 function renderAdminTools() {
